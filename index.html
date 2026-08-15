@@ -1,6 +1,7 @@
 <section id="annual-eth-rings" aria-labelledby="annual-eth-label">
   <style>
-    #annual-eth-rings { color:var(--foreground); }
+    html, body { min-height:100%; margin:0; background:#181818; }
+    #annual-eth-rings { --background:#181818; --foreground:#ffffff; --muted-foreground:#a3a3a3; --border:#484848; --popover:#2d2d2d; --popover-foreground:#ffffff; box-sizing:border-box; min-height:100vh; padding:1rem; background:var(--background); color:var(--foreground); }
     #annual-eth-rings canvas { display:block; width:100%; max-width:760px; aspect-ratio:1; margin-inline:auto; }
     #annual-eth-rings .canvas-wrap { position:relative; max-width:760px; margin-inline:auto; }
     #annual-eth-rings .eth-mark { position:absolute; top:calc(50% - 34px); left:50%; width:25px; height:41px; transform:translateX(-50%); pointer-events:none; }

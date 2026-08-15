@@ -16,7 +16,7 @@
     @media (max-width:760px), (pointer:coarse) {
       #annual-eth-rings { display:grid; grid-template-rows:auto minmax(0,1fr) auto; grid-template-columns:minmax(0,1fr); width:100vw; max-width:100vw; min-height:100svh; padding:.75rem 0; overflow:hidden; }
       #annual-eth-label { box-sizing:border-box; width:100vw; min-width:0; padding:0 .75rem; font-size:13px; line-height:1.35; }
-      #annual-eth-rings .canvas-wrap { align-self:center; width:100vw; min-width:0; max-width:none; margin:0; }
+      #annual-eth-rings .canvas-wrap { align-self:center; justify-self:center; width:100vw; min-width:0; max-width:none; margin:0; }
       #annual-eth-rings .canvas-wrap > canvas { width:100vw; max-width:none; }
       #annual-eth-rings .source-line { box-sizing:border-box; width:100vw; min-width:0; padding:0 .75rem .25rem; font-size:12px; line-height:1.35; }
       #annual-eth-rings .hover-readout { font-size:17px; line-height:1.4; }
@@ -92,8 +92,8 @@
       canvas.addEventListener('pointerup',pointerUp);
       canvas.addEventListener('pointercancel',pointerCancel);
       canvas.addEventListener('mouseleave',()=>{hover.classList.remove('is-visible');if(selected){selected=null;draw();}});
-      let observedSize=0;
-      new ResizeObserver(()=>{if(zoom.scale>1.01)return;const size=canvas.clientWidth;if(Math.abs(size-observedSize)<.5)return;observedSize=size;applyZoom(false);draw();}).observe(canvas);applyZoom(false);draw();
+      function freezeMobileLayout(){const viewport=window.visualViewport,viewportWidth=Math.round(viewport?.width||window.innerWidth),viewportHeight=Math.round(viewport?.height||window.innerHeight),labelHeight=root.querySelector('#annual-eth-label').getBoundingClientRect().height,sourceHeight=root.querySelector('.source-line').getBoundingClientRect().height,availableHeight=Math.max(1,viewportHeight-labelHeight-sourceHeight-24),size=Math.floor(Math.min(viewportWidth,availableHeight));root.style.height=`${viewportHeight}px`;root.style.minHeight=`${viewportHeight}px`;wrap.style.width=`${size}px`;wrap.style.height=`${size}px`;canvas.style.width=`${size}px`;canvas.style.height=`${size}px`;}
+      if(coarsePointer){freezeMobileLayout();applyZoom(false);draw();}else{let observedSize=0;new ResizeObserver(()=>{const size=canvas.clientWidth;if(Math.abs(size-observedSize)<.5)return;observedSize=size;applyZoom(false);draw();}).observe(canvas);applyZoom(false);draw();}
     })();
   </script>
 </section>

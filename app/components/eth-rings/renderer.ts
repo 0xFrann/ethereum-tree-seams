@@ -350,11 +350,10 @@ function fillVariableContour(
 function drawMonthWedge(
   context: CanvasRenderingContext2D,
   inner: number[],
-  selected: number[],
   outer: number[],
   month: number,
   center: number,
-  color: string,
+  paperColor: string,
 ) {
   const start = month * 30;
   const end = start + 30;
@@ -372,29 +371,8 @@ function drawMonthWedge(
     context.lineTo(point.x, point.y);
   }
   context.closePath();
-
-  const averageRadius = (radii: number[]) => {
-    let total = 0;
-    for (let sample = start; sample <= end; sample += 1) {
-      total += radii[sample % SAMPLE_COUNT];
-    }
-    return total / (end - start + 1);
-  };
-  const innerRadius = averageRadius(inner);
-  const selectedRadius = averageRadius(selected);
-  const outerRadius = averageRadius(outer);
-  const selectedStop = Math.max(
-    0.05,
-    Math.min(0.95, (selectedRadius - innerRadius) / Math.max(1, outerRadius - innerRadius)),
-  );
-  const gradient = context.createRadialGradient(center, center, innerRadius, center, center, outerRadius);
-  gradient.addColorStop(0, "transparent");
-  gradient.addColorStop(selectedStop, color);
-  gradient.addColorStop(1, "transparent");
-
-  context.fillStyle = gradient;
-  context.globalAlpha = 0.085;
-  context.globalCompositeOperation = "destination-over";
+  context.fillStyle = paperColor;
+  context.globalAlpha = 0.72;
   context.fill();
   context.restore();
 }
@@ -557,6 +535,7 @@ export function drawSelection(
   geometry: Geometry,
   selection: Selection,
   color: string,
+  paperColor: string,
 ) {
   const ring = geometry.rings[selection.yearIndex];
   if (!ring) return;
@@ -569,11 +548,10 @@ export function drawSelection(
   drawMonthWedge(
     context,
     geometry.rings[0].radii,
-    ring.radii,
     geometry.bark,
     selection.month,
     geometry.center,
-    color,
+    paperColor,
   );
 
   if (end - start < 2) return;

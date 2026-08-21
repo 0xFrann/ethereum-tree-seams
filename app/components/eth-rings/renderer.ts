@@ -120,6 +120,7 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
   let baseline = Array(SAMPLE_COUNT).fill(inner);
 
   const rings = data.years.map((year): RingGeometry => {
+    const incomingBaseline = baseline;
     const startSample = Math.max(0, Math.min(SAMPLE_COUNT - 1, Math.floor(year.startProgress * SAMPLE_COUNT)));
     const activeSamples = Math.max(2, Math.min(SAMPLE_COUNT, Math.round(year.progress * SAMPLE_COUNT)));
     const cyclic = startSample === 0 && activeSamples === SAMPLE_COUNT;
@@ -175,7 +176,19 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const peak = rest + monthRecord.volumeWeight * gap * 0.16;
       return rest + (peak - rest) * pulse;
     });
-    baseline = radii.map((radius) => radius + gap * 0.9);
+    if (startSample > 0) {
+      // A partial first market year cannot define the contour for the months
+      // that precede the data source. Carry its average observed growth into a
+      // continuous baseline so the missing interval does not become a radial
+      // seam in every subsequent ring.
+      const observedGrowth = radii
+        .slice(startSample, activeSamples)
+        .reduce((total, radius, index) => total + radius - incomingBaseline[startSample + index], 0)
+        / Math.max(1, activeSamples - startSample);
+      baseline = incomingBaseline.map((radius) => radius + observedGrowth + gap * 0.9);
+    } else {
+      baseline = radii.map((radius) => radius + gap * 0.9);
+    }
     return {
       year: year.year,
       radii,

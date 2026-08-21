@@ -23,7 +23,8 @@ import {
   drawEventSelection,
   drawSelection,
   drawStaticArtwork,
-  hitTestInteractive,
+  hitTest,
+  hitTestEvent,
   type Geometry,
 } from "./eth-rings/renderer";
 
@@ -139,19 +140,15 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const geometryRef = useRef<Geometry | null>(null);
   const cacheRef = useRef<HTMLCanvasElement | null>(null);
-  const eventButtonRefs = useRef(new Map<string, HTMLButtonElement>());
-  const [selection, setSelection] = useState<Selection>({ yearIndex: latestYearIndex, month: latestMonth });
-  const [eventSelection, setEventSelection] = useState<EventSelection>(null);
-  const [eventPreview, setEventPreview] = useState<EventSelection>(null);
+  const idleSelection = useMemo<Selection>(
+    () => ({ yearIndex: latestYearIndex, month: latestMonth }),
+    [latestMonth, latestYearIndex],
+  );
+  const [selection, setSelection] = useState<Selection>(idleSelection);
   const [announceSelection, setAnnounceSelection] = useState(true);
-  const [eventFocusIndex, setEventFocusIndex] = useState(0);
   const selectionRef = useRef(selection);
-  const eventSelectionRef = useRef(eventSelection);
-  const eventPreviewRef = useRef(eventPreview);
 
   useEffect(() => { selectionRef.current = selection; }, [selection]);
-  useEffect(() => { eventSelectionRef.current = eventSelection; }, [eventSelection]);
-  useEffect(() => { eventPreviewRef.current = eventPreview; }, [eventPreview]);
 
   const year = data.years[selection.yearIndex];
   const month = year.months.find((item) => item.month === selection.month) ?? year.months.at(-1)!;
@@ -159,23 +156,31 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     ...data.milestones.map((record) => ({ kind: "milestone" as const, record })),
     ...data.scars.map((record) => ({ kind: "scar" as const, record })),
   ].sort((left, right) => left.record.date.localeCompare(right.record.date) || left.record.id.localeCompare(right.record.id)), [data]);
-  const selectedEvent = eventSelection
-    ? timelineEvents.find((item) => item.kind === eventSelection.kind && item.record.id === eventSelection.id) ?? null
-    : null;
 
-  const eventSelectionsForMarket = useCallback((next: Selection) => {
+  const eventsForMarket = useCallback((next: Selection) => {
     const selectedYear = data.years[next.yearIndex]?.year;
     const prefix = `${selectedYear}-${String(next.month + 1).padStart(2, "0")}-`;
-    return timelineEvents
-      .filter((item) => item.record.date.startsWith(prefix))
-      .map((item): Exclude<EventSelection, null> => ({ kind: item.kind, id: item.record.id }));
+    return timelineEvents.filter((item) => item.record.date.startsWith(prefix));
   }, [data.years, timelineEvents]);
+
+  const eventSelectionsForMarket = useCallback(
+    (next: Selection) => eventsForMarket(next)
+      .map((item): Exclude<EventSelection, null> => ({ kind: item.kind, id: item.record.id })),
+    [eventsForMarket],
+  );
+
+  const selectedEvents = eventsForMarket(selection);
 
   const selectMarket = useCallback((next: Selection, announce: boolean) => {
     setAnnounceSelection(announce);
-    setEventSelection(announce ? eventSelectionsForMarket(next)[0] ?? null : null);
-    setSelection(next);
-  }, [eventSelectionsForMarket]);
+    setSelection((current) =>
+      current.yearIndex === next.yearIndex && current.month === next.month ? current : next,
+    );
+  }, []);
+
+  const restoreIdleSelection = useCallback(() => {
+    selectMarket(idleSelection, false);
+  }, [idleSelection, selectMarket]);
 
   const selectYear = useCallback((yearIndex: number) => {
     const available = data.years[yearIndex].months.map((item) => item.month);
@@ -184,19 +189,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       : available.reduce((best, candidate) => Math.abs(candidate - selection.month) < Math.abs(best - selection.month) ? candidate : best, available[0]);
     selectMarket({ yearIndex, month: nextMonth }, true);
   }, [data.years, selectMarket, selection.month]);
-
-  const commitEvent = useCallback((next: Exclude<EventSelection, null>) => {
-    setAnnounceSelection(true);
-    setEventSelection(next);
-    setEventPreview(null);
-    const item = timelineEvents.find((candidate) => candidate.kind === next.kind && candidate.record.id === next.id);
-    if (!item) return;
-    const [eventYear, eventMonth] = item.record.date.split("-").map(Number);
-    const yearIndex = data.years.findIndex((candidate) => candidate.year === eventYear);
-    if (yearIndex >= 0 && data.years[yearIndex].months.some((candidate) => candidate.month === eventMonth - 1)) {
-      setSelection({ yearIndex, month: eventMonth - 1 });
-    }
-  }, [data.years, timelineEvents]);
 
   const paintSelection = useCallback(() => {
     const canvas = canvasRef.current;
@@ -209,11 +201,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     context.drawImage(cache, 0, 0, geometry.size, geometry.size);
     const styles = getComputedStyle(canvas);
     drawSelection(context, data, geometry, selectionRef.current, styles.getPropertyValue("--ring-accent").trim());
-    const active = eventPreviewRef.current
-      ? [eventPreviewRef.current]
-      : [...eventSelectionsForMarket(selectionRef.current), eventSelectionRef.current].filter((item): item is Exclude<EventSelection, null> => Boolean(item));
-    const unique = new Map(active.map((item) => [`${item.kind}:${item.id}`, item]));
-    unique.forEach((item) => drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()));
+    eventSelectionsForMarket(selectionRef.current).forEach((item) =>
+      drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()),
+    );
   }, [data, eventSelectionsForMarket]);
 
   useEffect(() => {
@@ -249,11 +239,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         context.clearRect(0, 0, size, size);
         context.drawImage(cache, 0, 0, size, size);
         drawSelection(context, data, geometry, selectionRef.current, styles.getPropertyValue("--ring-accent").trim());
-        const active = eventPreviewRef.current
-          ? [eventPreviewRef.current]
-          : [...eventSelectionsForMarket(selectionRef.current), eventSelectionRef.current].filter((item): item is Exclude<EventSelection, null> => Boolean(item));
-        const unique = new Map(active.map((item) => [`${item.kind}:${item.id}`, item]));
-        unique.forEach((item) => drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()));
+        eventSelectionsForMarket(selectionRef.current).forEach((item) =>
+          drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()),
+        );
       });
     };
     const observer = new ResizeObserver(render);
@@ -262,15 +250,30 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     return () => { observer.disconnect(); cancelAnimationFrame(frame); };
   }, [data, eventSelectionsForMarket]);
 
-  useEffect(paintSelection, [paintSelection, selection, eventSelection, eventPreview]);
+  useEffect(paintSelection, [paintSelection, selection]);
 
-  const interactiveAt = useCallback((clientX: number, clientY: number, pointer: "fine" | "coarse") => {
+  const marketAt = useCallback((clientX: number, clientY: number, pointer: "fine" | "coarse") => {
     const canvas = canvasRef.current;
     const geometry = geometryRef.current;
     if (!canvas || !geometry) return null;
     const rect = canvas.getBoundingClientRect();
-    return hitTestInteractive(geometry, clientX - rect.left, clientY - rect.top, pointer);
-  }, []);
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
+    const event = hitTestEvent(geometry, x, y, pointer);
+    if (event) {
+      const item = timelineEvents.find((candidate) =>
+        candidate.kind === event.kind && candidate.record.id === event.id,
+      );
+      if (item) {
+        const [eventYear, eventMonth] = item.record.date.split("-").map(Number);
+        const yearIndex = data.years.findIndex((candidate) => candidate.year === eventYear);
+        if (yearIndex >= 0 && data.years[yearIndex].months.some((candidate) => candidate.month === eventMonth - 1)) {
+          return { yearIndex, month: eventMonth - 1 };
+        }
+      }
+    }
+    return hitTest(geometry, x, y);
+  }, [data.years, timelineEvents]);
 
   const handleCanvasKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
     const available = year.months.map((item) => item.month);
@@ -287,18 +290,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     else return;
     event.preventDefault();
     selectMarket(next, true);
-  };
-
-  const handleEventKey = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
-    let target = index;
-    if (event.key === "ArrowRight" || event.key === "ArrowDown") target = Math.min(timelineEvents.length - 1, index + 1);
-    else if (event.key === "ArrowLeft" || event.key === "ArrowUp") target = Math.max(0, index - 1);
-    else if (event.key === "Home") target = 0;
-    else if (event.key === "End") target = timelineEvents.length - 1;
-    else return;
-    event.preventDefault();
-    setEventFocusIndex(target);
-    eventButtonRefs.current.get(`${timelineEvents[target].kind}:${timelineEvents[target].record.id}`)?.focus();
   };
 
   const annualRange = `${priceUsd(year.annual.low)}—${priceUsd(year.annual.high)}`;
@@ -319,24 +310,28 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               role="group"
               aria-roledescription="interactive chart"
               tabIndex={0}
-              aria-label={`Interactive Ethereum annual rings. Selected ${MONTHS[selection.month]} ${year.year}, monthly return ${signedPercent(month.returnPct)}. Use left and right arrows for observed months, up and down arrows for years.`}
+              aria-label={`Interactive Ethereum annual rings. Selected ${MONTHS[selection.month]} ${year.year}, monthly return ${signedPercent(month.returnPct)}. Month details include every knot and scar. Use left and right arrows for observed months, up and down arrows for years.`}
               aria-describedby="rings-instructions rings-readout"
               onKeyDown={handleCanvasKeyDown}
-              onPointerLeave={() => setEventPreview(null)}
+              onPointerLeave={(event) => {
+                if (event.pointerType === "mouse") restoreIdleSelection();
+              }}
               onPointerMove={(event) => {
                 if (event.pointerType !== "mouse") return;
-                const hit = interactiveAt(event.clientX, event.clientY, "fine");
-                if (!hit) return;
-                setEventPreview(hit.event);
-                if (hit.market) selectMarket(hit.market, false);
+                const market = marketAt(event.clientX, event.clientY, "fine");
+                if (market) selectMarket(market, false);
+                else restoreIdleSelection();
               }}
               onPointerDown={(event) => {
-                const hit = interactiveAt(event.clientX, event.clientY, event.pointerType === "mouse" ? "fine" : "coarse");
-                if (hit?.event) commitEvent(hit.event);
-                else if (hit?.market) selectMarket(hit.market, true);
+                const market = marketAt(
+                  event.clientX,
+                  event.clientY,
+                  event.pointerType === "mouse" ? "fine" : "coarse",
+                );
+                if (market) selectMarket(market, true);
               }}
             >
-              Ethereum annual-ring market chart. Equivalent year, month, and event controls follow the chart.
+              Ethereum annual-ring market chart. Equivalent year and month controls follow the chart.
             </canvas>
             <div className="canvas-center" aria-hidden="true">
               <span>Origin</span>
@@ -412,23 +407,20 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <div><dt>Observed range</dt><dd>{annualRange}</dd></div>
             </dl>
 
-            {selectedEvent ? (
-              <div className="event-detail">
-                <>
-                  <p className="event-type">{selectedEvent.kind === "milestone" ? "Milestone" : "Scar"} · {formatDate(selectedEvent.record.date)}</p>
-                  <h2>{selectedEvent.record.name}</h2>
-                  <p>{selectedEvent.record.summary}</p>
-                  {selectedEvent.kind === "scar" ? <><p><strong>Affected layer:</strong> {selectedEvent.record.affectedLayer}</p><p><strong>Reported impact:</strong> {selectedEvent.record.reportedImpact}</p><p><strong>Outcome:</strong> {selectedEvent.record.recoveryStatus}</p></> : <p><strong>Category:</strong> {selectedEvent.record.category}{selectedEvent.record.activation ? ` · ${selectedEvent.record.activation}` : ""}</p>}
-                  <p><strong>Confidence:</strong> {selectedEvent.record.confidence}</p>
-                  <a href={selectedEvent.record.sourceUrl} target="_blank" rel="noreferrer">Primary source ↗</a>
-                </>
+            {selectedEvents.map((item) => (
+              <div className="event-detail" key={`${item.kind}:${item.record.id}`}>
+                <p className="event-type">{item.kind === "milestone" ? "Milestone" : "Scar"} · {formatDate(item.record.date)}</p>
+                <h2>{item.record.name}</h2>
+                <p>{item.record.summary}</p>
+                {item.kind === "scar" ? <><p><strong>Affected layer:</strong> {item.record.affectedLayer}</p><p><strong>Reported impact:</strong> {item.record.reportedImpact}</p><p><strong>Outcome:</strong> {item.record.recoveryStatus}</p></> : <p><strong>Category:</strong> {item.record.category}{item.record.activation ? ` · ${item.record.activation}` : ""}</p>}
+                <p><strong>Confidence:</strong> {item.record.confidence}</p>
+                <a href={item.record.sourceUrl} target="_blank" rel="noreferrer">Primary source ↗</a>
               </div>
-            ) : null}
+            ))}
           </section>
           <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">
-            {announceSelection ? selectedEvent
-              ? `${selectedEvent.kind === "milestone" ? "Milestone" : "Scar"} selected: ${selectedEvent.record.name}, ${formatDate(selectedEvent.record.date)}.`
-              : `${MONTHS[selection.month]} ${year.year} selected. Monthly return ${signedPercent(month.returnPct)}.`
+            {announceSelection
+              ? `${MONTHS[selection.month]} ${year.year} selected. Monthly return ${signedPercent(month.returnPct)}.${selectedEvents.length ? ` Events: ${selectedEvents.map((item) => item.record.name).join(", ")}.` : ""}`
               : ""}
           </p>
           </aside>
@@ -439,15 +431,12 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         <div><p className="section-index">Event chronology</p><h2 id="event-index-title">Knots and scars</h2></div>
         {timelineEvents.length ? (
           <div className="event-list">
-            {timelineEvents.map((item, index) => {
-              const [eventYear, eventMonth] = item.record.date.split("-").map(Number);
-              const selected = (eventSelection?.kind === item.kind && eventSelection.id === item.record.id) ||
-                (data.years[selection.yearIndex].year === eventYear && selection.month === eventMonth - 1);
+            {timelineEvents.map((item) => {
               const key = `${item.kind}:${item.record.id}`;
               return (
-                <button key={key} ref={(node) => { if (node) eventButtonRefs.current.set(key, node); else eventButtonRefs.current.delete(key); }} type="button" className="event-button" tabIndex={index === eventFocusIndex ? 0 : -1} aria-pressed={selected} onFocus={() => setEventFocusIndex(index)} onClick={() => commitEvent({ kind: item.kind, id: item.record.id })} onKeyDown={(event) => handleEventKey(event, index)}>
+                <article key={key} className="event-card">
                   <span>{item.kind === "milestone" ? "Milestone" : "Scar"}</span><strong>{item.record.name}</strong><time dateTime={item.record.date}>{formatDate(item.record.date)}</time>
-                </button>
+                </article>
               );
             })}
           </div>
@@ -456,7 +445,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
 
       <details id="sources" className="methodology">
         <summary>Methodology and source boundary</summary>
-        <div><p>{data.methodology.caveat}</p><p>{data.methodology.price}</p><p>{data.methodology.volume}</p><p>Each knot and scar exposes its primary source when selected in the event chronology.</p><p>Source boundary: {data.source.timezone}. {data.source.gaps.length ? `${data.source.gaps.length} missing source day${data.source.gaps.length === 1 ? "" : "s"}: ${data.source.gaps.join(", ")}.` : "No missing source days detected."}</p><a href={data.source.url} target="_blank" rel="noreferrer">CryptoDataDownload Bitstamp source ↗</a></div>
+        <div><p>{data.methodology.caveat}</p><p>{data.methodology.price}</p><p>{data.methodology.volume}</p><p>Knot and scar details, including primary sources, appear with the month that contains them.</p><p>Source boundary: {data.source.timezone}. {data.source.gaps.length ? `${data.source.gaps.length} missing source day${data.source.gaps.length === 1 ? "" : "s"}: ${data.source.gaps.join(", ")}.` : "No missing source days detected."}</p><a href={data.source.url} target="_blank" rel="noreferrer">CryptoDataDownload Bitstamp source ↗</a></div>
       </details>
     </section>
   );

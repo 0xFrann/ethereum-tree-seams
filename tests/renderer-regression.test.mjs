@@ -53,8 +53,17 @@ test("eases the first observed month from circular grain into its data shape", a
   assert.match(source, /const ENTRY_EASE_SAMPLES = 30/);
   assert.match(source, /const entryEaseAt = \(index: number\)/);
   assert.match(source, /progress \* progress \* \(3 - 2 \* progress\)/);
-  assert.match(source, /baseline\[index\] \+ \(radius - baseline\[index\]\) \* entryEaseAt\(index\)/);
-  assert.match(source, /\(peak - rest\) \* pulse \* entryEaseAt\(index\)/);
+  assert.match(source, /baseline\[index\] \+ \(radius - baseline\[index\]\) \* partialYearEaseAt\(index\)/);
+  assert.match(source, /\(peak - rest\) \* pulse \* partialYearEaseAt\(index\)/);
+});
+
+test("eases the partial first data year back into its circular year-end join", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+
+  assert.match(source, /const EXIT_EASE_SAMPLES = 18/);
+  assert.match(source, /const exitEaseAt = \(index: number\)/);
+  assert.match(source, /SAMPLE_COUNT - 1 - index/);
+  assert.match(source, /entryEaseAt\(index\) \* exitEaseAt\(index\)/);
 });
 
 test("keeps data-bearing year rings stronger than decorative ghost grain", async () => {

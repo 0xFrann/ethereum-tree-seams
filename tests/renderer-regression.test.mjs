@@ -31,7 +31,7 @@ test("retains the recovered year-end ease, closed bark, wedge, and labels", asyn
   assert.match(source, /gradient\.addColorStop\(selectedStop, paperColor\)/);
   assert.match(source, /gradient\.addColorStop\(1, transparentPaperColor\)/);
   assert.match(source, /context\.fillStyle = gradient/);
-  assert.match(source, /context\.globalAlpha = 0\.62/);
+  assert.match(source, /context\.globalAlpha = 0\.72/);
   assert.doesNotMatch(source, /context\.globalCompositeOperation = "destination-over"/);
   assert.doesNotMatch(source, /gradient\.addColorStop\([^,]+, "transparent"\)/);
   assert.match(source, /const labelRadius = indexRadius \+ labelClearance \+ textExtent/);

@@ -404,7 +404,7 @@ function drawMonthWedge(
   gradient.addColorStop(1, transparentPaperColor);
 
   context.fillStyle = gradient;
-  context.globalAlpha = 0.62;
+  context.globalAlpha = 0.72;
   context.fill();
   context.restore();
 }

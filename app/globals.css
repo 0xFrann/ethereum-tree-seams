@@ -111,7 +111,7 @@ button { font: inherit; }
 .graph-key b { color: var(--ink); font-weight: 600; }
 .graph-key i { display: block; flex: 0 0 auto; width: 21px; }
 .source-note { right: 7px; bottom: 7px; width: 190px; text-align: right; text-transform: none; pointer-events: auto; }
-.source-note p { margin: 3px 0 0; font: 600 10px/1.35 var(--font-mono); text-transform: uppercase; }
+.source-note p { margin: 3px 0 0; font: 600 10px/1.35 var(--font-mono); text-transform: uppercase; white-space: nowrap; }
 .source-note small { display: block; margin-top: 5px; color: var(--secondary-ink); font: 10px/1.35 var(--font-mono); }
 .source-note a { color: var(--secondary-ink); }
 .key-line { border-top: 1px solid var(--ink); transform: rotate(-3deg); }

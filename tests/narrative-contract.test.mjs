@@ -108,7 +108,8 @@ test("keeps graph selection and metadata monochrome", () => {
 });
 
 test("keeps one dedicated method section and separate event and method links", () => {
-  assert.match(explorer, /<a href="#events">Events ↓<\/a> · <a href="#method">Method ↓<\/a>/);
+  assert.match(explorer, />Data ↗<\/a> · <a href="#events">Events ↓<\/a> · <a href="#method">Method ↓<\/a>/);
+  assert.match(explorer, /\* Price from: \{formatDate\(data\.chronology\.marketDataFrom\)\}<br \/>Origin: \{formatDate\(data\.chronology\.origin\)\}/);
   assert.match(explorer, /<section id="events" className="event-index"/);
   assert.match(explorer, /<section id="method" className="methodology" aria-labelledby="method-title">/);
   assert.match(explorer, /How the rings are built/);
@@ -118,6 +119,7 @@ test("keeps one dedicated method section and separate event and method links", (
   assert.match(explorer, /R<sub>y<\/sub>\(θ\) = R<sub>y−1<\/sub>\(θ\) \+ 0\.9g \+ 0\.39g · price<sub>y<\/sub>\(θ\)/);
   assert.match(explorer, /clearance prevents collisions/);
   assert.match(globalStyles, /\.methodology \{ display: grid; grid-template-columns: minmax\(180px, \.25fr\) 1fr/);
+  assert.match(globalStyles, /\.source-note p \{[^}]*white-space: nowrap;/);
   assert.match(globalStyles, /\.method-steps sub \{[^}]*font-size: \.9em;/);
   assert.doesNotMatch(globalStyles, /\.construction-drawer|\.construction-panel/);
 });

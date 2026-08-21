@@ -43,8 +43,18 @@ test("a partial first year cannot propagate a radial seam into later rings", asy
   const source = await readFile(rendererUrl, "utf8");
   assert.match(source, /const incomingBaseline = baseline/);
   assert.match(source, /if \(startSample > 0\)/);
-  assert.match(source, /const observedGrowth = radii/);
+  assert.match(source, /const observedGrowth = rawRadii/);
   assert.match(source, /baseline = incomingBaseline\.map\(\(radius\) => radius \+ observedGrowth \+ gap \* 0\.9\)/);
+});
+
+test("eases the first observed month from circular grain into its data shape", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+
+  assert.match(source, /const ENTRY_EASE_SAMPLES = 30/);
+  assert.match(source, /const entryEaseAt = \(index: number\)/);
+  assert.match(source, /progress \* progress \* \(3 - 2 \* progress\)/);
+  assert.match(source, /baseline\[index\] \+ \(radius - baseline\[index\]\) \* entryEaseAt\(index\)/);
+  assert.match(source, /\(peak - rest\) \* pulse \* entryEaseAt\(index\)/);
 });
 
 test("keeps data-bearing year rings stronger than decorative ghost grain", async () => {

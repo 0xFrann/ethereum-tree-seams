@@ -19,6 +19,7 @@ const INTERSTITIAL_GHOST_FRACTIONS = [0.17, 0.34, 0.52, 0.7, 0.84] as const;
 const GHOST_ALPHA = 0.5;
 const EMPTY_GHOST_ALPHA_MIN = 0.2;
 const EMPTY_GHOST_ALPHA_MAX = 0.48;
+const ENTRY_EASE_SAMPLES = 30;
 
 type RingGeometry = {
   year: number;
@@ -151,7 +152,12 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
     const startSample = Math.max(0, Math.min(SAMPLE_COUNT - 1, Math.floor(year.startProgress * SAMPLE_COUNT)));
     const activeSamples = Math.max(2, Math.min(SAMPLE_COUNT, Math.round(year.progress * SAMPLE_COUNT)));
     const cyclic = startSample === 0 && activeSamples === SAMPLE_COUNT;
-    const radii = Array.from({ length: SAMPLE_COUNT }, (_, index) => {
+    const entryEaseAt = (index: number) => {
+      if (startSample === 0) return 1;
+      const progress = Math.max(0, Math.min(1, (index - startSample) / ENTRY_EASE_SAMPLES));
+      return progress * progress * (3 - 2 * progress);
+    };
+    const rawRadii = Array.from({ length: SAMPLE_COUNT }, (_, index) => {
       if (index < startSample) return baseline[index];
       const observedSamples = Math.max(2, activeSamples - startSample);
       const position = cyclic
@@ -160,6 +166,8 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const shape = interpolate(year.priceShape, position, cyclic);
       return Math.max(baseline[index] + shape * gap * 0.39, baseline[index] - gap * 0.6);
     });
+    const radii = rawRadii.map((radius, index) =>
+      baseline[index] + (radius - baseline[index]) * entryEaseAt(index));
     if (startSample === 0 && activeSamples < SAMPLE_COUNT) {
       const lastObserved = activeSamples - 1;
       const missingSamples = SAMPLE_COUNT - activeSamples;
@@ -204,14 +212,14 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const monthRecord = year.months.find((record) => record.month === Math.floor(monthPosition) % 12)
         ?? year.months[month];
       const peak = rest + monthRecord.volumeWeight * gap * 0.16;
-      return rest + (peak - rest) * pulse;
+      return rest + (peak - rest) * pulse * entryEaseAt(index);
     });
     if (startSample > 0) {
       // A partial first market year cannot define the contour for the months
       // that precede the data source. Carry its average observed growth into a
       // continuous baseline so the missing interval does not become a radial
       // seam in every subsequent ring.
-      const observedGrowth = radii
+      const observedGrowth = rawRadii
         .slice(startSample, activeSamples)
         .reduce((total, radius, index) => total + radius - incomingBaseline[startSample + index], 0)
         / Math.max(1, activeSamples - startSample);

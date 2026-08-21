@@ -115,6 +115,7 @@ test("offers an upward construction drawer with the additive ring method", () =>
   assert.match(explorer, /Rᵧ\(θ\) = Rᵧ₋₁\(θ\) \+ 0\.9g \+ 0\.39g · priceᵧ\(θ\)/);
   assert.match(explorer, /clearance prevents collisions/);
   assert.match(globalStyles, /\.construction-drawer \{ position: absolute;[^}]*bottom: 6px;[^}]*left: 50%;/);
+  assert.match(globalStyles, /\.construction-drawer summary \{[^}]*white-space: nowrap;/);
   assert.match(globalStyles, /\.construction-panel \{ position: absolute; bottom: 30px;/);
   assert.match(globalStyles, /\.construction-grid \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
 });

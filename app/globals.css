@@ -115,7 +115,7 @@ button { font: inherit; }
 .source-note small { display: block; margin-top: 5px; color: var(--secondary-ink); font: 10px/1.35 var(--font-mono); }
 .source-note a { color: var(--secondary-ink); }
 .construction-drawer { position: absolute; z-index: 5; bottom: 6px; left: 50%; width: 0; font-family: var(--font-mono); }
-.construction-drawer summary { position: absolute; bottom: 0; left: 50%; min-width: 52px; padding: 5px 10px; border: 1px solid var(--ink); color: var(--ink); background: var(--paper); cursor: pointer; list-style: none; transform: translateX(-50%); text-align: center; font: 650 9px/1 var(--font-mono); letter-spacing: .13em; text-transform: uppercase; }
+.construction-drawer summary { position: absolute; bottom: 0; left: 50%; min-width: 52px; padding: 5px 10px; border: 1px solid var(--ink); color: var(--ink); background: var(--paper); cursor: pointer; list-style: none; transform: translateX(-50%); text-align: center; white-space: nowrap; font: 650 9px/1 var(--font-mono); letter-spacing: .13em; text-transform: uppercase; }
 .construction-drawer summary::-webkit-details-marker { display: none; }
 .construction-drawer summary::after { content: " ↑"; }
 .construction-drawer[open] summary::after { content: " ↓"; }

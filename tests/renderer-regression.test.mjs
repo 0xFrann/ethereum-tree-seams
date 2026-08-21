@@ -54,3 +54,13 @@ test("highlights knots and scars with a dark fill instead of an outline", async 
   assert.match(selection, /context\.globalAlpha = 1/);
   assert.doesNotMatch(selection, /strokeStyle|lineWidth|context\.stroke\(\)|context\.arc\(/);
 });
+
+test("renders knots and scars with the same lighter neutral treatment", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+  const scar = source.slice(source.indexOf("function drawScar"), source.indexOf("function drawKnot"));
+  const knot = source.slice(source.indexOf("function drawKnot"), source.indexOf("export function drawStaticArtwork"));
+  assert.match(scar, /context\.globalAlpha = 0\.58/);
+  assert.match(knot, /context\.globalAlpha = 0\.58/);
+  assert.match(source, /drawScar\(context, scar, colors\.muted\)/);
+  assert.match(source, /drawKnot\(context, knot, colors\.muted\)/);
+});

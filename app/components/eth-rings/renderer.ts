@@ -419,7 +419,7 @@ function drawScar(
 ) {
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = scar.healingState === "open" ? 0.42 : 0.3;
+  context.globalAlpha = 0.58;
   tracePointPath(context, scar.polygon, true);
   context.fill();
   context.restore();
@@ -432,7 +432,7 @@ function drawKnot(
 ) {
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = 0.94;
+  context.globalAlpha = 0.58;
   tracePointPath(context, knot.path, true);
   context.fill();
   context.restore();
@@ -477,7 +477,7 @@ export function drawStaticArtwork(
   rings.forEach((ring) => strokeFutureContour(context, ring, center, colors.muted));
 
   geometry.events.scars.forEach((scar) => drawScar(context, scar, colors.muted));
-  geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.ink));
+  geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.muted));
   [...geometry.events.scars.map((scar) => scar.anchor), ...geometry.events.knots.map((knot) => knot.anchor)]
     .forEach((anchor) => {
       if (!anchor.leader) return;

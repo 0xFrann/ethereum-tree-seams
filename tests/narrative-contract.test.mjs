@@ -97,3 +97,11 @@ test("uses solid dark control highlights without outlined boxes", () => {
   assert.match(globalStyles, /\.year-button\[aria-pressed="true"\], \.month-button\[aria-pressed="true"\] \{[^}]*color: var\(--paper\);[^}]*background: var\(--ink\);/);
   assert.match(globalStyles, /\.year-button:focus-visible, \.month-button:focus-visible \{ outline: 0;[^}]*background: var\(--secondary-ink\);/);
 });
+
+test("keeps graph selection and metadata monochrome", () => {
+  assert.match(globalStyles, /--ring-accent: #2f312e/);
+  assert.match(globalStyles, /--ring-event-accent: #171a17/);
+  assert.match(globalStyles, /--ring-bark: #6b6d66/);
+  assert.match(globalStyles, /\.return-stamp \.positive, \.return-stamp \.negative \{ color: var\(--ink\); \}/);
+  assert.match(globalStyles, /\.source-note a \{ color: var\(--secondary-ink\); \}/);
+});

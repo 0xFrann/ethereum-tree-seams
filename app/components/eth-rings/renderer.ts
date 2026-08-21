@@ -444,7 +444,7 @@ export function drawStaticArtwork(
   geometry: Geometry,
   colors: { ink: string; grain: string; muted: string; bark: string },
 ) {
-  const { center, rings, gap, size, bark, indexRadius } = geometry;
+  const { center, rings, gap, inner, size, bark, indexRadius } = geometry;
   context.clearRect(0, 0, size, size);
   drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
 
@@ -458,15 +458,18 @@ export function drawStaticArtwork(
   });
 
   const lastEmptyBand = emptyYearBands.at(-1);
-  const firstDataRing = rings[0];
-  if (lastEmptyBand && firstDataRing) {
-    const outermostEmptyRadii = lastEmptyBand.innerBoundary.map((innerRadius, sample) =>
-      innerRadius + (lastEmptyBand.outerBoundary[sample] - innerRadius) * 0.9);
-    INTERSTITIAL_GHOST_FRACTIONS.forEach((fraction) => {
-      const radii = outermostEmptyRadii.map((radius, sample) =>
-        radius + (firstDataRing.radii[sample] - radius) * fraction);
-      strokeGhostContour(context, radii, center, colors.grain);
-    });
+  if (lastEmptyBand) {
+    const outermostEmptyRadius =
+      lastEmptyBand.innerBoundary[0]
+      + (lastEmptyBand.outerBoundary[0] - lastEmptyBand.innerBoundary[0]) * 0.9;
+    const emptyRingSpacing = gap * 0.2;
+    for (
+      let radius = outermostEmptyRadius + emptyRingSpacing;
+      radius < inner - emptyRingSpacing * 0.5;
+      radius += emptyRingSpacing
+    ) {
+      strokeGhostContour(context, Array(SAMPLE_COUNT).fill(radius), center, colors.grain);
+    }
   }
 
   for (let index = 0; index < rings.length - 1; index += 1) {

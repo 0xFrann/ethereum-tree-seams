@@ -89,12 +89,12 @@ test("keeps pre-market ghost rings circular so events sit on their host ring", a
   assert.doesNotMatch(preMarketBlock, /Math\.sin|bandIndex/);
 });
 
-test("bridges empty years into the first data ring without a blank annulus", async () => {
+test("continues circular ghost grain through all space before the first data ring", async () => {
   const source = await readFile(rendererUrl, "utf8");
 
   assert.match(source, /const lastEmptyBand = emptyYearBands\.at\(-1\)/);
-  assert.match(source, /const firstDataRing = rings\[0\]/);
-  assert.match(source, /const outermostEmptyRadii = lastEmptyBand\.innerBoundary\.map/);
-  assert.match(source, /firstDataRing\.radii\[sample\] - radius/);
-  assert.match(source, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
+  assert.match(source, /const emptyRingSpacing = gap \* 0\.2/);
+  assert.match(source, /radius < inner - emptyRingSpacing \* 0\.5/);
+  assert.match(source, /Array\(SAMPLE_COUNT\)\.fill\(radius\)/);
+  assert.doesNotMatch(source, /firstDataRing\.radii\[sample\] - radius/);
 });

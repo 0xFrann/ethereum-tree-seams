@@ -25,8 +25,9 @@ test("retains the recovered year-end ease, closed bark, wedge, and labels", asyn
   assert.match(source, /drawBark\(context, rings\.at\(-1\)!\.radii, bark, center, colors\.bark\)/);
   assert.match(source, /context\.fill\("evenodd"\)/);
   assert.match(source, /return radius \+ gap \* \(0\.69 \+ coarse \+ chip \+ spike \+ notch\)/);
-  assert.match(source, /context\.createRadialGradient\(center, center, innerRadius, center, center, outerRadius\)/);
-  assert.match(source, /context\.globalCompositeOperation = "destination-over"/);
+  assert.match(source, /context\.fillStyle = paperColor/);
+  assert.match(source, /context\.globalAlpha = 0\.72/);
+  assert.doesNotMatch(source, /context\.globalCompositeOperation = "destination-over"/);
   assert.match(source, /const labelRadius = indexRadius \+ labelClearance \+ textExtent/);
   assert.match(source, /geometry\.events\.scars\.forEach/);
   assert.match(source, /geometry\.events\.knots\.forEach/);

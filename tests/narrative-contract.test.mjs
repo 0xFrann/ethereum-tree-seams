@@ -102,6 +102,7 @@ test("keeps graph selection and metadata monochrome", () => {
   assert.match(globalStyles, /--ring-accent: #2f312e/);
   assert.match(globalStyles, /--ring-event-accent: #171a17/);
   assert.match(globalStyles, /--ring-bark: #6b6d66/);
+  assert.match(explorer, /styles\.getPropertyValue\("--paper"\)\.trim\(\)/);
   assert.match(globalStyles, /\.return-stamp \.positive, \.return-stamp \.negative \{ color: var\(--ink\); \}/);
   assert.match(globalStyles, /\.source-note a \{ color: var\(--secondary-ink\); \}/);
 });

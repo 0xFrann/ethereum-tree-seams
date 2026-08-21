@@ -200,7 +200,14 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     context.clearRect(0, 0, geometry.size, geometry.size);
     context.drawImage(cache, 0, 0, geometry.size, geometry.size);
     const styles = getComputedStyle(canvas);
-    drawSelection(context, data, geometry, selectionRef.current, styles.getPropertyValue("--ring-accent").trim());
+    drawSelection(
+      context,
+      data,
+      geometry,
+      selectionRef.current,
+      styles.getPropertyValue("--ring-accent").trim(),
+      styles.getPropertyValue("--paper").trim(),
+    );
     eventSelectionsForMarket(selectionRef.current).forEach((item) =>
       drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()),
     );
@@ -238,7 +245,14 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         cacheRef.current = cache;
         context.clearRect(0, 0, size, size);
         context.drawImage(cache, 0, 0, size, size);
-        drawSelection(context, data, geometry, selectionRef.current, styles.getPropertyValue("--ring-accent").trim());
+        drawSelection(
+          context,
+          data,
+          geometry,
+          selectionRef.current,
+          styles.getPropertyValue("--ring-accent").trim(),
+          styles.getPropertyValue("--paper").trim(),
+        );
         eventSelectionsForMarket(selectionRef.current).forEach((item) =>
           drawEventSelection(context, geometry, item, styles.getPropertyValue("--ring-event-accent").trim()),
         );

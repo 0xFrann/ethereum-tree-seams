@@ -20,6 +20,7 @@ const GHOST_ALPHA = 0.5;
 const EMPTY_GHOST_ALPHA_MIN = 0.2;
 const EMPTY_GHOST_ALPHA_MAX = 0.48;
 const ENTRY_EASE_SAMPLES = 30;
+const EXIT_EASE_SAMPLES = 18;
 
 type RingGeometry = {
   year: number;
@@ -157,6 +158,12 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const progress = Math.max(0, Math.min(1, (index - startSample) / ENTRY_EASE_SAMPLES));
       return progress * progress * (3 - 2 * progress);
     };
+    const exitEaseAt = (index: number) => {
+      if (startSample === 0 || activeSamples < SAMPLE_COUNT) return 1;
+      const progress = Math.max(0, Math.min(1, (SAMPLE_COUNT - 1 - index) / EXIT_EASE_SAMPLES));
+      return progress * progress * (3 - 2 * progress);
+    };
+    const partialYearEaseAt = (index: number) => entryEaseAt(index) * exitEaseAt(index);
     const rawRadii = Array.from({ length: SAMPLE_COUNT }, (_, index) => {
       if (index < startSample) return baseline[index];
       const observedSamples = Math.max(2, activeSamples - startSample);
@@ -167,7 +174,7 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       return Math.max(baseline[index] + shape * gap * 0.39, baseline[index] - gap * 0.6);
     });
     const radii = rawRadii.map((radius, index) =>
-      baseline[index] + (radius - baseline[index]) * entryEaseAt(index));
+      baseline[index] + (radius - baseline[index]) * partialYearEaseAt(index));
     if (startSample === 0 && activeSamples < SAMPLE_COUNT) {
       const lastObserved = activeSamples - 1;
       const missingSamples = SAMPLE_COUNT - activeSamples;
@@ -212,7 +219,7 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const monthRecord = year.months.find((record) => record.month === Math.floor(monthPosition) % 12)
         ?? year.months[month];
       const peak = rest + monthRecord.volumeWeight * gap * 0.16;
-      return rest + (peak - rest) * pulse * entryEaseAt(index);
+      return rest + (peak - rest) * pulse * partialYearEaseAt(index);
     });
     if (startSample > 0) {
       // A partial first market year cannot define the contour for the months

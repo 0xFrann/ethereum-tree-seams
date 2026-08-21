@@ -117,8 +117,6 @@ button { font: inherit; }
 .construction-drawer { position: absolute; z-index: 5; bottom: 6px; left: 50%; width: 0; font-family: var(--font-mono); }
 .construction-drawer summary { position: absolute; bottom: 0; left: 50%; min-width: 52px; padding: 5px 10px; border: 1px solid var(--ink); color: var(--ink); background: var(--paper); cursor: pointer; list-style: none; transform: translateX(-50%); text-align: center; white-space: nowrap; font: 650 9px/1 var(--font-mono); letter-spacing: .13em; text-transform: uppercase; }
 .construction-drawer summary::-webkit-details-marker { display: none; }
-.construction-drawer summary::after { content: " ↑"; }
-.construction-drawer[open] summary::after { content: " ↓"; }
 .construction-drawer summary:hover { color: var(--paper); background: var(--ink); }
 .construction-drawer summary:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .construction-panel { position: absolute; bottom: 30px; left: 50%; width: min(640px, calc(100vw - 48px)); padding: 14px; border: 1px solid var(--line); background: color-mix(in srgb, var(--paper) 97%, transparent); box-shadow: 0 -10px 30px rgb(23 26 23 / 10%); transform: translateX(-50%); animation: construction-rise 160ms ease-out; }

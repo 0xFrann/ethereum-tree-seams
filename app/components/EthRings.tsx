@@ -372,7 +372,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <small>* Price history starts {formatDate(data.chronology.marketDataFrom)}; the experiment origin is {formatDate(data.chronology.origin)}.</small>
             </div>
             <details className="construction-drawer">
-              <summary aria-label="How the rings are constructed">How</summary>
+              <summary aria-label="Read how market data is transformed into rings">Method?</summary>
               <div className="construction-panel">
                 <span className="construction-title">Data → additive rings</span>
                 <div className="construction-grid">

@@ -64,3 +64,13 @@ test("renders knots and scars with the same lighter neutral treatment", async ()
   assert.match(source, /drawScar\(context, scar, colors\.muted\)/);
   assert.match(source, /drawKnot\(context, knot, colors\.muted\)/);
 });
+
+test("extends ghost grain through unobserved years and unfinished months", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+  assert.match(source, /function strokeGhostContour/);
+  assert.match(source, /band\.marketYearIndex === null/);
+  assert.match(source, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
+  assert.match(source, /if \(ring\.startSample > 0\)/);
+  assert.match(source, /if \(ring\.activeSamples < SAMPLE_COUNT\)/);
+  assert.doesNotMatch(source, /strokeFutureContour/);
+});

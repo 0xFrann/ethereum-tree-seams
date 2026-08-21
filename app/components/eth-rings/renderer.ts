@@ -14,6 +14,7 @@ import { MONTHS, type EventSelection, type MarketData, type Selection } from "./
 
 const SAMPLE_COUNT = 360;
 const TAU = Math.PI * 2;
+const EMPTY_YEAR_GHOST_FRACTIONS = [0.1, 0.3, 0.5, 0.7, 0.9] as const;
 
 type RingGeometry = {
   year: number;
@@ -449,9 +450,11 @@ export function drawStaticArtwork(
   geometry.yearBands
     .filter((band) => band.marketYearIndex === null)
     .forEach((band) => {
-      const startSample = Math.floor(band.startFraction * SAMPLE_COUNT);
-      const sampleCount = Math.min(SAMPLE_COUNT, Math.ceil(band.activeFraction * SAMPLE_COUNT));
-      strokeGhostContour(context, band.radii, center, colors.grain, startSample, sampleCount);
+      EMPTY_YEAR_GHOST_FRACTIONS.forEach((fraction) => {
+        const radii = band.innerBoundary.map((innerRadius, sample) =>
+          innerRadius + (band.outerBoundary[sample] - innerRadius) * fraction);
+        strokeGhostContour(context, radii, center, colors.grain);
+      });
     });
 
   for (let index = 0; index < rings.length - 1; index += 1) {

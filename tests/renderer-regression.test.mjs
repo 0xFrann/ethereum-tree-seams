@@ -69,10 +69,8 @@ test("extends ghost grain through unobserved years and unfinished months", async
   const source = await readFile(rendererUrl, "utf8");
   assert.match(source, /function strokeGhostContour/);
   assert.match(source, /band\.marketYearIndex === null/);
-  assert.match(
-    source,
-    /strokeGhostContour\(context, band\.radii, center, colors\.grain, startSample, sampleCount\)/,
-  );
+  assert.match(source, /const EMPTY_YEAR_GHOST_FRACTIONS = \[0\.1, 0\.3, 0\.5, 0\.7, 0\.9\]/);
+  assert.match(source, /EMPTY_YEAR_GHOST_FRACTIONS\.forEach/);
   assert.match(source, /if \(ring\.startSample > 0\)/);
   assert.match(source, /if \(ring\.activeSamples < SAMPLE_COUNT\)/);
   assert.doesNotMatch(source, /strokeFutureContour/);
@@ -84,6 +82,8 @@ test("keeps pre-market ghost rings circular so events sit on their host ring", a
   const preMarketEnd = source.indexOf("for (let index = 0;", preMarketStart);
   const preMarketBlock = source.slice(preMarketStart, preMarketEnd);
 
-  assert.match(preMarketBlock, /strokeGhostContour\(context, band\.radii/);
+  assert.match(preMarketBlock, /band\.innerBoundary\.map/);
+  assert.match(preMarketBlock, /band\.outerBoundary\[sample\]/);
+  assert.match(preMarketBlock, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
   assert.doesNotMatch(preMarketBlock, /Math\.sin|bandIndex/);
 });

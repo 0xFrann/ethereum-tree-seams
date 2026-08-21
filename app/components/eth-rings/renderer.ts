@@ -448,12 +448,10 @@ export function drawStaticArtwork(
 
   geometry.yearBands
     .filter((band) => band.marketYearIndex === null)
-    .forEach((band, bandIndex) => {
+    .forEach((band) => {
       const startSample = Math.floor(band.startFraction * SAMPLE_COUNT);
       const sampleCount = Math.min(SAMPLE_COUNT, Math.ceil(band.activeFraction * SAMPLE_COUNT));
-      const radii = band.radii.map((radius, sample) =>
-        radius + Math.sin((sample / SAMPLE_COUNT) * TAU * 5 + bandIndex * 1.7) * gap * 0.018);
-      strokeGhostContour(context, radii, center, colors.grain, startSample, sampleCount);
+      strokeGhostContour(context, band.radii, center, colors.grain, startSample, sampleCount);
     });
 
   for (let index = 0; index < rings.length - 1; index += 1) {

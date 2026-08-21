@@ -38,3 +38,11 @@ test("a partial first year cannot propagate a radial seam into later rings", asy
   assert.match(source, /const observedGrowth = radii/);
   assert.match(source, /baseline = incomingBaseline\.map\(\(radius\) => radius \+ observedGrowth \+ gap \* 0\.9\)/);
 });
+
+test("keeps data-bearing year rings stronger than decorative ghost grain", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+  assert.match(source, /const rest = Math\.max\(1\.15, gap \* 0\.04\)/);
+  assert.match(source, /context\.lineWidth = 0\.55/);
+  assert.match(source, /context\.globalAlpha = 0\.24/);
+  assert.match(source, /fillVariableContour\(context, ring, center, colors\.ink, ring\.startSample, end, 0\.92\)/);
+});

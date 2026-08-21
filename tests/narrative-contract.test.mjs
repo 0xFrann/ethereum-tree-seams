@@ -92,3 +92,8 @@ test("keeps chart interaction month-based and restores the latest month when idl
   assert.match(explorer, /<article key=\{key\} className="event-card">/);
   assert.doesNotMatch(explorer, /className="event-button"/);
 });
+
+test("uses solid dark control highlights without outlined boxes", () => {
+  assert.match(globalStyles, /\.year-button\[aria-pressed="true"\], \.month-button\[aria-pressed="true"\] \{[^}]*color: var\(--paper\);[^}]*background: var\(--ink\);/);
+  assert.match(globalStyles, /\.year-button:focus-visible, \.month-button:focus-visible \{ outline: 0;[^}]*background: var\(--secondary-ink\);/);
+});

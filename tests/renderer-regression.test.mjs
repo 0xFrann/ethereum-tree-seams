@@ -41,8 +41,16 @@ test("a partial first year cannot propagate a radial seam into later rings", asy
 
 test("keeps data-bearing year rings stronger than decorative ghost grain", async () => {
   const source = await readFile(rendererUrl, "utf8");
-  assert.match(source, /const rest = Math\.max\(1\.15, gap \* 0\.04\)/);
-  assert.match(source, /context\.lineWidth = 0\.55/);
-  assert.match(source, /context\.globalAlpha = 0\.24/);
-  assert.match(source, /fillVariableContour\(context, ring, center, colors\.ink, ring\.startSample, end, 0\.92\)/);
+  assert.match(source, /const rest = Math\.max\(0\.9, gap \* 0\.032\)/);
+  assert.match(source, /context\.lineWidth = 0\.78/);
+  assert.match(source, /context\.globalAlpha = 0\.44/);
+  assert.match(source, /fillVariableContour\(context, ring, center, colors\.ink, ring\.startSample, end, 0\.82\)/);
+});
+
+test("highlights knots and scars with a dark fill instead of an outline", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+  const selection = source.slice(source.indexOf("export function drawEventSelection"), source.indexOf("export function hitTestEvent"));
+  assert.match(selection, /context\.fillStyle = color/);
+  assert.match(selection, /context\.globalAlpha = 1/);
+  assert.doesNotMatch(selection, /strokeStyle|lineWidth|context\.stroke\(\)|context\.arc\(/);
 });

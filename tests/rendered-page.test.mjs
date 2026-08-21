@@ -12,27 +12,18 @@ async function render(pathname = "/") {
   );
 }
 
-test("renders the visualization directly at the root route", async () => {
+test("renders the archival specimen shell and cache-loading boundary at the root route", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>Ethereum Annual Rings<\/title>/i);
-  assert.match(html, /A market/);
-  assert.match(html, /remembered/);
-  assert.match(html, /Interactive Ethereum annual rings/);
+  assert.match(html, /Spec_ID · ETH_TREE_001/i);
+  assert.match(html, /ETH\/USD growth, grain, and scars/);
+  assert.match(html, /https:\/\/www\.linkedin\.com\/in\/franndalmasso/);
+  assert.match(html, /https:\/\/github\.com\/0xFrann\/ethereum-tree-seams/);
+  assert.match(html, /Loading the cached Bitstamp market history/);
+  assert.doesNotMatch(html, /site-header|wordmark|eth-diamond\.svg/);
   assert.doesNotMatch(html, /Seven annual lives|Methodology &amp; data notes|<footer/i);
-  assert.doesNotMatch(html, /codex-preview|react-loading-skeleton|annual-eth-rings\.html/i);
-});
-
-test("server-renders both approved selection surfaces and the fixed readout", async () => {
-  const response = await render();
-  const html = await response.text();
-  assert.match(html, /Choose a year and month/);
-  assert.match(html, /Selected segment/);
-  assert.match(html, /Year return/);
-  assert.match(html, /Year range/);
-  assert.match(html, /2019/);
-  assert.match(html, /2025/);
-  assert.match(html, /Hover or tap a ring/);
+  assert.doesNotMatch(html, /eth-market\.json|codex-preview|annual-eth-rings\.html/i);
 });

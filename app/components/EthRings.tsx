@@ -368,53 +368,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             </div>
             <div className="canvas-instrument source-note">
               <span>Sources</span>
-              <p><a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a> · <a href="#sources">Method & events ↓</a></p>
+              <p><a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a> · <a href="#events">Events ↓</a> · <a href="#method">Method ↓</a></p>
               <small>* Price history starts {formatDate(data.chronology.marketDataFrom)}; the experiment origin is {formatDate(data.chronology.origin)}.</small>
             </div>
-            <details
-              className="construction-drawer"
-              onBlur={(event) => {
-                const nextTarget = event.relatedTarget;
-                if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
-                  event.currentTarget.open = false;
-                }
-              }}
-            >
-              <summary aria-label="Read how market data is transformed into rings">Method?</summary>
-              <div className="construction-panel">
-                <div className="construction-heading">
-                  <span className="construction-title">How price and volume become rings</span>
-                  <button
-                    type="button"
-                    className="construction-close"
-                    aria-label="Close method"
-                    onClick={(event) => {
-                      const drawer = event.currentTarget.closest("details");
-                      if (!drawer) return;
-                      drawer.open = false;
-                      drawer.querySelector<HTMLElement>("summary")?.focus();
-                    }}
-                  >
-                    ↓
-                  </button>
-                </div>
-                <div className="construction-grid">
-                  <section>
-                    <b>01 / Price shape</b>
-                    <p>Four close-price samples per month → ln(price) → −1…+1 within each observed year → a smooth 360° contour.</p>
-                  </section>
-                  <section>
-                    <b>02 / Ring weight</b>
-                    <p>Monthly average daily USD volume → log<sub>10</sub>(volume) → 0…1 across the full observed period → line thickness.</p>
-                  </section>
-                  <section>
-                    <b>03 / Additive growth</b>
-                    <code>R<sub>y</sub>(θ) = R<sub>y−1</sub>(θ) + 0.9g + 0.39g · price<sub>y</sub>(θ)</code>
-                    <p>Each year grows outside the last. The clearance prevents collisions and favors a legible, organic form over a shared radial price scale.</p>
-                  </section>
-                </div>
-              </div>
-            </details>
           </div>
           <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month.</p>
         </div>
@@ -485,7 +441,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         </div>
       </div>
 
-      <section className="event-index" aria-labelledby="event-index-title">
+      <section id="events" className="event-index" aria-labelledby="event-index-title">
         <div><p className="section-index">Event chronology</p><h2 id="event-index-title">Knots and scars</h2></div>
         {timelineEvents.length ? (
           <div className="event-list">
@@ -501,10 +457,32 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         ) : <p>No protocol milestones or security scars are available for this view.</p>}
       </section>
 
-      <details id="sources" className="methodology">
-        <summary>Methodology and source boundary</summary>
-        <div><p>{data.methodology.caveat}</p><p>{data.methodology.price}</p><p>{data.methodology.volume}</p><p>Knot and scar details, including primary sources, appear with the month that contains them.</p><p>Source boundary: {data.source.timezone}. {data.source.gaps.length ? `${data.source.gaps.length} missing source day${data.source.gaps.length === 1 ? "" : "s"}: ${data.source.gaps.join(", ")}.` : "No missing source days detected."}</p><a href={data.source.url} target="_blank" rel="noreferrer">CryptoDataDownload Bitstamp source ↗</a></div>
-      </details>
+      <section id="method" className="methodology" aria-labelledby="method-title">
+        <div><p className="section-index">Methodology</p><h2 id="method-title">How the rings are built</h2></div>
+        <div className="methodology-content">
+          <div className="method-steps">
+            <article>
+              <b>01 / Price shape</b>
+              <p>Four close-price samples per month → ln(price) → −1…+1 within each observed year → a smooth 360° contour.</p>
+            </article>
+            <article>
+              <b>02 / Ring weight</b>
+              <p>Monthly average daily USD volume → log<sub>10</sub>(volume) → 0…1 across the full observed period → line thickness.</p>
+            </article>
+            <article>
+              <b>03 / Additive growth</b>
+              <code>R<sub>y</sub>(θ) = R<sub>y−1</sub>(θ) + 0.9g + 0.39g · price<sub>y</sub>(θ)</code>
+              <p>Each year grows outside the last. The clearance prevents collisions and favors a legible, organic form over a shared radial price scale.</p>
+            </article>
+          </div>
+          <div className="source-boundary">
+            <p>{data.methodology.caveat}</p>
+            <p>Knot and scar details, including primary sources, appear with the month that contains them.</p>
+            <p>Source boundary: {data.source.timezone}. {data.source.gaps.length ? `${data.source.gaps.length} missing source day${data.source.gaps.length === 1 ? "" : "s"}: ${data.source.gaps.join(", ")}.` : "No missing source days detected."}</p>
+            <a href={data.source.url} target="_blank" rel="noreferrer">CryptoDataDownload Bitstamp source ↗</a>
+          </div>
+        </div>
+      </section>
     </section>
   );
 }

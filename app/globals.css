@@ -156,13 +156,11 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .event-index { display: grid; grid-template-columns: minmax(180px, .25fr) 1fr; gap: 32px; margin-top: 48px; padding-top: 28px; border-top: 1px solid var(--line-strong); }
 .event-index h2 { margin: 7px 0 0; font: 400 32px/1 var(--font-editorial); }
 .event-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
-.event-button { display: grid; min-height: 96px; padding: 12px; border: 0; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); align-content: start; color: var(--secondary-ink); background: var(--paper); text-align: left; cursor: pointer; }
-.event-button:hover, .event-button[aria-pressed="true"] { color: var(--ink); background: var(--paper-deep); }
-.event-button[aria-pressed="true"] { box-shadow: inset 3px 0 var(--copper-text); }
-.event-button span, .event-button time { font: 10px/1.35 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
-.event-button span { color: var(--copper-text); }
-.event-button strong { margin-top: 7px; font: 600 11px/1.35 var(--font-interface); }
-.event-button time { margin-top: 8px; color: var(--ink-faint); }
+.event-card { display: grid; min-height: 96px; padding: 12px; border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); align-content: start; color: var(--secondary-ink); background: var(--paper); }
+.event-card span, .event-card time { font: 10px/1.35 var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
+.event-card span { color: var(--copper-text); }
+.event-card strong { margin-top: 7px; font: 600 11px/1.35 var(--font-interface); }
+.event-card time { margin-top: 8px; color: var(--ink-faint); }
 
 .methodology { margin-top: 42px; padding-block: 18px; border-block: 1px solid var(--line); }
 .methodology summary { min-height: 44px; padding: 12px 0; cursor: pointer; color: var(--ink); font: 10px/1.4 var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -221,5 +219,5 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 
 @media (forced-colors: active) {
   .rings-canvas { forced-color-adjust: none; }
-  .event-button[aria-pressed="true"], .year-button[aria-pressed="true"], .month-button[aria-pressed="true"] { outline: 2px solid CanvasText; }
+  .year-button[aria-pressed="true"], .month-button[aria-pressed="true"] { outline: 2px solid CanvasText; }
 }

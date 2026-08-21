@@ -79,7 +79,16 @@ test("keeps explorer states and interaction semantics explicit", () => {
   assert.match(explorer, /No protocol milestones or security scars are available/);
   assert.match(explorer, /role="group"/);
   assert.match(explorer, /aria-roledescription="interactive chart"/);
-  assert.match(explorer, /tabIndex=\{index === eventFocusIndex \? 0 : -1\}/);
   assert.match(explorer, /role="status" aria-live="polite"/);
   assert.match(globalStyles, /\.canvas-shell \{ width: min\(100%, 440px\); \}/);
+});
+
+test("keeps chart interaction month-based and restores the latest month when idle", () => {
+  assert.match(explorer, /const idleSelection = useMemo<Selection>/);
+  assert.match(explorer, /if \(event\.pointerType === "mouse"\) restoreIdleSelection\(\)/);
+  assert.match(explorer, /const market = marketAt\(event\.clientX, event\.clientY, "fine"\)/);
+  assert.match(explorer, /selectedEvents\.map/);
+  assert.doesNotMatch(explorer, /hitTestInteractive|commitEvent|eventPreview|setEventSelection|eventSelectionRef/);
+  assert.match(explorer, /<article key=\{key\} className="event-card">/);
+  assert.doesNotMatch(explorer, /className="event-button"/);
 });

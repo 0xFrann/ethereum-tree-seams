@@ -371,6 +371,27 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <p><a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a> · <a href="#sources">Method & events ↓</a></p>
               <small>* Price history starts {formatDate(data.chronology.marketDataFrom)}; the experiment origin is {formatDate(data.chronology.origin)}.</small>
             </div>
+            <details className="construction-drawer">
+              <summary aria-label="How the rings are constructed">How</summary>
+              <div className="construction-panel">
+                <span className="construction-title">Data → additive rings</span>
+                <div className="construction-grid">
+                  <section>
+                    <b>01 / Price shape</b>
+                    <p>Four close-price samples per month → ln(price) → −1…+1 within each observed year → a smooth 360° contour.</p>
+                  </section>
+                  <section>
+                    <b>02 / Ring weight</b>
+                    <p>Monthly average daily USD volume → log₁₀(volume) → 0…1 across the full observed period → line thickness.</p>
+                  </section>
+                  <section>
+                    <b>03 / Additive growth</b>
+                    <code>Rᵧ(θ) = Rᵧ₋₁(θ) + 0.9g + 0.39g · priceᵧ(θ)</code>
+                    <p>Each year grows outside the last. The clearance prevents collisions and favors a legible, organic form over a shared radial price scale.</p>
+                  </section>
+                </div>
+              </div>
+            </details>
           </div>
           <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month.</p>
         </div>

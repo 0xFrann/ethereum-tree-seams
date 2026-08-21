@@ -99,7 +99,7 @@ test("uses solid dark control highlights without outlined boxes", () => {
 });
 
 test("keeps graph selection and metadata monochrome", () => {
-  assert.match(globalStyles, /--ring-accent: #2f312e/);
+  assert.match(globalStyles, /--ring-accent: #171a17/);
   assert.match(globalStyles, /--ring-event-accent: #171a17/);
   assert.match(globalStyles, /--ring-bark: #6b6d66/);
   assert.match(explorer, /styles\.getPropertyValue\("--paper"\)\.trim\(\)/);

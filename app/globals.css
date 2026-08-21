@@ -84,7 +84,7 @@ button { font: inherit; }
   --ring-ink: #171a17;
   --ring-grain: #74736a;
   --ring-muted: #55574f;
-  --ring-accent: #2f312e;
+  --ring-accent: #171a17;
   --ring-event-accent: #171a17;
   --ring-bark: #6b6d66;
   display: block;

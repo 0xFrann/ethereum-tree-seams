@@ -405,11 +405,11 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
                   </section>
                   <section>
                     <b>02 / Ring weight</b>
-                    <p>Monthly average daily USD volume → log₁₀(volume) → 0…1 across the full observed period → line thickness.</p>
+                    <p>Monthly average daily USD volume → log<sub>10</sub>(volume) → 0…1 across the full observed period → line thickness.</p>
                   </section>
                   <section>
                     <b>03 / Additive growth</b>
-                    <code>Rᵧ(θ) = Rᵧ₋₁(θ) + 0.9g + 0.39g · priceᵧ(θ)</code>
+                    <code>R<sub>y</sub>(θ) = R<sub>y−1</sub>(θ) + 0.9g + 0.39g · price<sub>y</sub>(θ)</code>
                     <p>Each year grows outside the last. The clearance prevents collisions and favors a legible, organic form over a shared radial price scale.</p>
                   </section>
                 </div>

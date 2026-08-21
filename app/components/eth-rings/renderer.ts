@@ -376,7 +376,7 @@ function drawMonthWedge(
   }
   context.closePath();
   context.fillStyle = paperColor;
-  context.globalAlpha = 0.72;
+  context.globalAlpha = 0.62;
   context.fill();
   context.restore();
 }

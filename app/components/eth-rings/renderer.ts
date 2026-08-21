@@ -16,6 +16,9 @@ const SAMPLE_COUNT = 360;
 const TAU = Math.PI * 2;
 const EMPTY_YEAR_GHOST_FRACTIONS = [0.1, 0.3, 0.5, 0.7, 0.9] as const;
 const INTERSTITIAL_GHOST_FRACTIONS = [0.17, 0.34, 0.52, 0.7, 0.84] as const;
+const GHOST_ALPHA = 0.5;
+const EMPTY_GHOST_ALPHA_MIN = 0.2;
+const EMPTY_GHOST_ALPHA_MAX = 0.48;
 
 type RingGeometry = {
   year: number;
@@ -90,12 +93,13 @@ function strokeGhostContour(
   startSample = 0,
   sampleCount = SAMPLE_COUNT,
   close = startSample === 0 && sampleCount === SAMPLE_COUNT,
+  alpha = GHOST_ALPHA,
 ) {
   if (sampleCount - startSample < 2) return;
   context.save();
   context.strokeStyle = color;
   context.lineWidth = 0.78;
-  context.globalAlpha = 0.44;
+  context.globalAlpha = alpha;
   context.lineCap = "round";
   context.lineJoin = "round";
   traceContour(context, radii, center, startSample, sampleCount, close);
@@ -427,11 +431,25 @@ export function drawStaticArtwork(
   drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
 
   const emptyYearBands = geometry.yearBands.filter((band) => band.marketYearIndex === null);
+  const emptyGhostInnerRadius = emptyYearBands[0]?.innerBoundary[0] ?? inner;
+  const emptyGhostAlphaAt = (radius: number) => {
+    const progress = Math.max(0, Math.min(1, (radius - emptyGhostInnerRadius) / Math.max(1, inner - emptyGhostInnerRadius)));
+    return EMPTY_GHOST_ALPHA_MIN + (EMPTY_GHOST_ALPHA_MAX - EMPTY_GHOST_ALPHA_MIN) * progress;
+  };
   emptyYearBands.forEach((band) => {
     EMPTY_YEAR_GHOST_FRACTIONS.forEach((fraction) => {
       const radii = band.innerBoundary.map((innerRadius, sample) =>
         innerRadius + (band.outerBoundary[sample] - innerRadius) * fraction);
-      strokeGhostContour(context, radii, center, colors.grain);
+      strokeGhostContour(
+        context,
+        radii,
+        center,
+        colors.grain,
+        0,
+        SAMPLE_COUNT,
+        true,
+        emptyGhostAlphaAt(radii[0]),
+      );
     });
   });
 
@@ -446,7 +464,16 @@ export function drawStaticArtwork(
       radius < inner - emptyRingSpacing * 0.5;
       radius += emptyRingSpacing
     ) {
-      strokeGhostContour(context, Array(SAMPLE_COUNT).fill(radius), center, colors.grain);
+      strokeGhostContour(
+        context,
+        Array(SAMPLE_COUNT).fill(radius),
+        center,
+        colors.grain,
+        0,
+        SAMPLE_COUNT,
+        true,
+        emptyGhostAlphaAt(radius),
+      );
     }
   }
 

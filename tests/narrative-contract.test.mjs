@@ -108,8 +108,14 @@ test("keeps graph selection and metadata monochrome", () => {
 });
 
 test("offers an upward construction drawer with the additive ring method", () => {
-  assert.match(explorer, /<details className="construction-drawer">/);
+  assert.match(explorer, /<details[\s\S]*className="construction-drawer"[\s\S]*onBlur=/);
   assert.match(explorer, /<summary aria-label="Read how market data is transformed into rings">Method\?<\/summary>/);
+  assert.match(explorer, /How price and volume become rings/);
+  assert.match(explorer, /!event\.currentTarget\.contains\(nextTarget\)/);
+  assert.match(explorer, /event\.currentTarget\.open = false/);
+  assert.match(explorer, /aria-label="Close method"/);
+  assert.match(explorer, /drawer\.open = false/);
+  assert.match(explorer, /drawer\.querySelector<HTMLElement>\("summary"\)\?\.focus\(\)/);
   assert.match(explorer, /Four close-price samples per month → ln\(price\) → −1…\+1/);
   assert.match(explorer, /Monthly average daily USD volume → log₁₀\(volume\) → 0…1/);
   assert.match(explorer, /Rᵧ\(θ\) = Rᵧ₋₁\(θ\) \+ 0\.9g \+ 0\.39g · priceᵧ\(θ\)/);
@@ -120,5 +126,6 @@ test("offers an upward construction drawer with the additive ring method", () =>
   assert.match(globalStyles, /\.construction-grid \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(globalStyles, /\.construction-drawer summary \{[^}]*font: 650 11px\/1 var\(--font-mono\)/);
   assert.match(globalStyles, /\.construction-grid p, \.construction-grid code \{[^}]*font: 11px\/1\.5 var\(--font-mono\)/);
+  assert.match(globalStyles, /\.construction-close \{[^}]*font: 650 16px\/1 var\(--font-mono\)/);
   assert.doesNotMatch(globalStyles, /\.construction-drawer(?:\[open\])? summary::after/);
 });

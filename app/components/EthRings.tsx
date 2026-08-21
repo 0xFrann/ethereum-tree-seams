@@ -371,10 +371,33 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <p><a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a> · <a href="#sources">Method & events ↓</a></p>
               <small>* Price history starts {formatDate(data.chronology.marketDataFrom)}; the experiment origin is {formatDate(data.chronology.origin)}.</small>
             </div>
-            <details className="construction-drawer">
+            <details
+              className="construction-drawer"
+              onBlur={(event) => {
+                const nextTarget = event.relatedTarget;
+                if (!(nextTarget instanceof Node) || !event.currentTarget.contains(nextTarget)) {
+                  event.currentTarget.open = false;
+                }
+              }}
+            >
               <summary aria-label="Read how market data is transformed into rings">Method?</summary>
               <div className="construction-panel">
-                <span className="construction-title">Data → additive rings</span>
+                <div className="construction-heading">
+                  <span className="construction-title">How price and volume become rings</span>
+                  <button
+                    type="button"
+                    className="construction-close"
+                    aria-label="Close method"
+                    onClick={(event) => {
+                      const drawer = event.currentTarget.closest("details");
+                      if (!drawer) return;
+                      drawer.open = false;
+                      drawer.querySelector<HTMLElement>("summary")?.focus();
+                    }}
+                  >
+                    ↓
+                  </button>
+                </div>
                 <div className="construction-grid">
                   <section>
                     <b>01 / Price shape</b>

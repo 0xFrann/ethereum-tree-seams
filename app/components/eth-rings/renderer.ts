@@ -351,6 +351,12 @@ function fillVariableContour(
   context.restore();
 }
 
+function transparentVersion(color: string) {
+  const hex = color.trim().match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+  if (!hex) return "rgba(238, 233, 217, 0)";
+  return `rgba(${Number.parseInt(hex[1], 16)}, ${Number.parseInt(hex[2], 16)}, ${Number.parseInt(hex[3], 16)}, 0)`;
+}
+
 function drawMonthWedge(
   context: CanvasRenderingContext2D,
   inner: number[],
@@ -392,9 +398,10 @@ function drawMonthWedge(
     Math.min(0.95, (selectedRadius - innerRadius) / Math.max(1, outerRadius - innerRadius)),
   );
   const gradient = context.createRadialGradient(center, center, innerRadius, center, center, outerRadius);
-  gradient.addColorStop(0, "transparent");
+  const transparentPaperColor = transparentVersion(paperColor);
+  gradient.addColorStop(0, transparentPaperColor);
   gradient.addColorStop(selectedStop, paperColor);
-  gradient.addColorStop(1, "transparent");
+  gradient.addColorStop(1, transparentPaperColor);
 
   context.fillStyle = gradient;
   context.globalAlpha = 0.62;

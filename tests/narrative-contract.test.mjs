@@ -106,3 +106,15 @@ test("keeps graph selection and metadata monochrome", () => {
   assert.match(globalStyles, /\.return-stamp \.positive, \.return-stamp \.negative \{ color: var\(--ink\); \}/);
   assert.match(globalStyles, /\.source-note a \{ color: var\(--secondary-ink\); \}/);
 });
+
+test("offers an upward construction drawer with the additive ring method", () => {
+  assert.match(explorer, /<details className="construction-drawer">/);
+  assert.match(explorer, /<summary aria-label="How the rings are constructed">How<\/summary>/);
+  assert.match(explorer, /Four close-price samples per month → ln\(price\) → −1…\+1/);
+  assert.match(explorer, /Monthly average daily USD volume → log₁₀\(volume\) → 0…1/);
+  assert.match(explorer, /Rᵧ\(θ\) = Rᵧ₋₁\(θ\) \+ 0\.9g \+ 0\.39g · priceᵧ\(θ\)/);
+  assert.match(explorer, /clearance prevents collisions/);
+  assert.match(globalStyles, /\.construction-drawer \{ position: absolute;[^}]*bottom: 6px;[^}]*left: 50%;/);
+  assert.match(globalStyles, /\.construction-panel \{ position: absolute; bottom: 30px;/);
+  assert.match(globalStyles, /\.construction-grid \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+});

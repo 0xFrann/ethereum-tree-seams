@@ -107,27 +107,17 @@ test("keeps graph selection and metadata monochrome", () => {
   assert.match(globalStyles, /\.source-note a \{ color: var\(--secondary-ink\); \}/);
 });
 
-test("offers an upward construction drawer with the additive ring method", () => {
-  assert.match(explorer, /<details[\s\S]*className="construction-drawer"[\s\S]*onBlur=/);
-  assert.match(explorer, /<summary aria-label="Read how market data is transformed into rings">Method\?<\/summary>/);
-  assert.match(explorer, /How price and volume become rings/);
-  assert.match(explorer, /!event\.currentTarget\.contains\(nextTarget\)/);
-  assert.match(explorer, /event\.currentTarget\.open = false/);
-  assert.match(explorer, /aria-label="Close method"/);
-  assert.match(explorer, /drawer\.open = false/);
-  assert.match(explorer, /drawer\.querySelector<HTMLElement>\("summary"\)\?\.focus\(\)/);
+test("keeps one dedicated method section and separate event and method links", () => {
+  assert.match(explorer, /<a href="#events">Events ↓<\/a> · <a href="#method">Method ↓<\/a>/);
+  assert.match(explorer, /<section id="events" className="event-index"/);
+  assert.match(explorer, /<section id="method" className="methodology" aria-labelledby="method-title">/);
+  assert.match(explorer, /How the rings are built/);
+  assert.doesNotMatch(explorer, /construction-drawer|Method & events/);
   assert.match(explorer, /Four close-price samples per month → ln\(price\) → −1…\+1/);
   assert.match(explorer, /Monthly average daily USD volume → log<sub>10<\/sub>\(volume\) → 0…1/);
   assert.match(explorer, /R<sub>y<\/sub>\(θ\) = R<sub>y−1<\/sub>\(θ\) \+ 0\.9g \+ 0\.39g · price<sub>y<\/sub>\(θ\)/);
   assert.match(explorer, /clearance prevents collisions/);
-  assert.match(globalStyles, /\.construction-drawer \{ position: absolute;[^}]*bottom: 6px;[^}]*left: 50%;/);
-  assert.match(globalStyles, /\.construction-drawer summary \{[^}]*white-space: nowrap;/);
-  assert.match(globalStyles, /\.construction-panel \{ position: absolute; bottom: 33px;/);
-  assert.match(globalStyles, /\.construction-grid \{ display: grid; grid-template-columns: 1fr/);
-  assert.match(globalStyles, /\.construction-grid section \{[^}]*border-bottom: 1px solid var\(--line\)/);
-  assert.match(globalStyles, /\.construction-drawer summary \{[^}]*font: 650 11px\/1 var\(--font-mono\)/);
-  assert.match(globalStyles, /\.construction-grid p, \.construction-grid code \{[^}]*font: 11px\/1\.5 var\(--font-mono\)/);
-  assert.match(globalStyles, /\.construction-grid sub \{[^}]*font-size: \.9em;/);
-  assert.match(globalStyles, /\.construction-close \{[^}]*font: 650 16px\/1 var\(--font-mono\)/);
-  assert.doesNotMatch(globalStyles, /\.construction-drawer(?:\[open\])? summary::after/);
+  assert.match(globalStyles, /\.methodology \{ display: grid; grid-template-columns: minmax\(180px, \.25fr\) 1fr/);
+  assert.match(globalStyles, /\.method-steps sub \{[^}]*font-size: \.9em;/);
+  assert.doesNotMatch(globalStyles, /\.construction-drawer|\.construction-panel/);
 });

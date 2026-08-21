@@ -45,7 +45,8 @@ test("keeps data-bearing year rings stronger than decorative ghost grain", async
   const source = await readFile(rendererUrl, "utf8");
   assert.match(source, /const rest = Math\.max\(0\.9, gap \* 0\.032\)/);
   assert.match(source, /context\.lineWidth = 0\.78/);
-  assert.match(source, /context\.globalAlpha = 0\.44/);
+  assert.match(source, /const GHOST_ALPHA = 0\.5/);
+  assert.match(source, /context\.globalAlpha = alpha/);
   assert.match(source, /fillVariableContour\(context, ring, center, colors\.ink, ring\.startSample, end, 0\.82\)/);
 });
 
@@ -86,8 +87,18 @@ test("keeps pre-market ghost rings circular so events sit on their host ring", a
 
   assert.match(preMarketBlock, /band\.innerBoundary\.map/);
   assert.match(preMarketBlock, /band\.outerBoundary\[sample\]/);
-  assert.match(preMarketBlock, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
+  assert.match(preMarketBlock, /emptyGhostAlphaAt\(radii\[0\]\)/);
   assert.doesNotMatch(preMarketBlock, /Math\.sin|bandIndex/);
+});
+
+test("fades empty-year ghost grain outward from the origin", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+
+  assert.match(source, /const EMPTY_GHOST_ALPHA_MIN = 0\.2/);
+  assert.match(source, /const EMPTY_GHOST_ALPHA_MAX = 0\.48/);
+  assert.match(source, /const emptyGhostAlphaAt = \(radius: number\)/);
+  assert.match(source, /radius - emptyGhostInnerRadius/);
+  assert.match(source, /emptyGhostAlphaAt\(radius\)/);
 });
 
 test("continues circular ghost grain through all space before the first data ring", async () => {

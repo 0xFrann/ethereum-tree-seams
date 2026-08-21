@@ -30,3 +30,11 @@ test("retains the recovered year-end ease, closed bark, wedge, and labels", asyn
   assert.match(source, /geometry\.events\.scars\.forEach/);
   assert.match(source, /geometry\.events\.knots\.forEach/);
 });
+
+test("a partial first year cannot propagate a radial seam into later rings", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+  assert.match(source, /const incomingBaseline = baseline/);
+  assert.match(source, /if \(startSample > 0\)/);
+  assert.match(source, /const observedGrowth = radii/);
+  assert.match(source, /baseline = incomingBaseline\.map\(\(radius\) => radius \+ observedGrowth \+ gap \* 0\.9\)/);
+});

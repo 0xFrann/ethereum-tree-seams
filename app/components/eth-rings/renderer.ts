@@ -65,7 +65,7 @@ function interpolate(values: number[], position: number, cyclic: boolean) {
 
 function traceContour(
   context: CanvasRenderingContext2D,
-  radii: number[],
+  radii: readonly number[],
   center: number,
   startSample: number,
   sampleCount: number,
@@ -78,6 +78,27 @@ function traceContour(
     else context.lineTo(point.x, point.y);
   }
   if (close) context.closePath();
+}
+
+function strokeGhostContour(
+  context: CanvasRenderingContext2D,
+  radii: readonly number[],
+  center: number,
+  color: string,
+  startSample = 0,
+  sampleCount = SAMPLE_COUNT,
+  close = startSample === 0 && sampleCount === SAMPLE_COUNT,
+) {
+  if (sampleCount - startSample < 2) return;
+  context.save();
+  context.strokeStyle = color;
+  context.lineWidth = 0.78;
+  context.globalAlpha = 0.44;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  traceContour(context, radii, center, startSample, sampleCount, close);
+  context.stroke();
+  context.restore();
 }
 
 function polar(center: number, radius: number, sample: number) {
@@ -324,29 +345,6 @@ function fillVariableContour(
   context.restore();
 }
 
-function strokeFutureContour(
-  context: CanvasRenderingContext2D,
-  ring: RingGeometry,
-  center: number,
-  color: string,
-) {
-  if (ring.activeSamples === SAMPLE_COUNT) return;
-  context.save();
-  context.strokeStyle = color;
-  context.globalAlpha = 0.58;
-  context.lineWidth = Math.max(1, ring.widths[ring.activeSamples - 1]);
-  context.lineCap = "round";
-  context.lineJoin = "round";
-  context.beginPath();
-  for (let sample = ring.activeSamples - 1; sample <= SAMPLE_COUNT; sample += 1) {
-    const point = polar(center, ring.radii[sample % SAMPLE_COUNT], sample);
-    if (sample === ring.activeSamples - 1) context.moveTo(point.x, point.y);
-    else context.lineTo(point.x, point.y);
-  }
-  context.stroke();
-  context.restore();
-}
-
 function drawMonthWedge(
   context: CanvasRenderingContext2D,
   inner: number[],
@@ -448,9 +446,17 @@ export function drawStaticArtwork(
   context.clearRect(0, 0, size, size);
   drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
 
+  geometry.yearBands
+    .filter((band) => band.marketYearIndex === null)
+    .forEach((band, bandIndex) => {
+      const startSample = Math.floor(band.startFraction * SAMPLE_COUNT);
+      const sampleCount = Math.min(SAMPLE_COUNT, Math.ceil(band.activeFraction * SAMPLE_COUNT));
+      const radii = band.radii.map((radius, sample) =>
+        radius + Math.sin((sample / SAMPLE_COUNT) * TAU * 5 + bandIndex * 1.7) * gap * 0.018);
+      strokeGhostContour(context, radii, center, colors.grain, startSample, sampleCount);
+    });
+
   for (let index = 0; index < rings.length - 1; index += 1) {
-    const startSample = Math.max(rings[index].startSample, rings[index + 1].startSample);
-    const sampleCount = Math.min(rings[index].activeSamples, rings[index + 1].activeSamples);
     [0.17, 0.34, 0.52, 0.7, 0.84].forEach((fraction, grainIndex) => {
       const radii = rings[index].radii.map((radius, sample) => {
         const next = rings[index + 1].radii[sample];
@@ -462,19 +468,29 @@ export function drawStaticArtwork(
         const value = radius + (next - radius) * fraction + noise;
         return Math.max(radius + gap * 0.045, Math.min(next - gap * 0.045, value));
       });
-      context.strokeStyle = colors.grain;
-      context.lineWidth = 0.78;
-      context.globalAlpha = 0.44;
-      traceContour(context, radii, center, startSample, sampleCount, startSample === 0 && sampleCount === SAMPLE_COUNT);
-      context.stroke();
+      strokeGhostContour(context, radii, center, colors.grain);
     });
   }
-  context.globalAlpha = 1;
+  rings.forEach((ring) => {
+    if (ring.startSample > 0) {
+      strokeGhostContour(context, ring.radii, center, colors.grain, 0, ring.startSample + 1, false);
+    }
+    if (ring.activeSamples < SAMPLE_COUNT) {
+      strokeGhostContour(
+        context,
+        ring.radii,
+        center,
+        colors.grain,
+        ring.activeSamples - 1,
+        SAMPLE_COUNT,
+        false,
+      );
+    }
+  });
   rings.forEach((ring) => {
     const end = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
     fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.82);
   });
-  rings.forEach((ring) => strokeFutureContour(context, ring, center, colors.muted));
 
   geometry.events.scars.forEach((scar) => drawScar(context, scar, colors.muted));
   geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.muted));

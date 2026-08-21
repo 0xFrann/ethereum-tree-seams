@@ -15,6 +15,7 @@ import { MONTHS, type EventSelection, type MarketData, type Selection } from "./
 const SAMPLE_COUNT = 360;
 const TAU = Math.PI * 2;
 const EMPTY_YEAR_GHOST_FRACTIONS = [0.1, 0.3, 0.5, 0.7, 0.9] as const;
+const INTERSTITIAL_GHOST_FRACTIONS = [0.17, 0.34, 0.52, 0.7, 0.84] as const;
 
 type RingGeometry = {
   year: number;
@@ -447,18 +448,29 @@ export function drawStaticArtwork(
   context.clearRect(0, 0, size, size);
   drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
 
-  geometry.yearBands
-    .filter((band) => band.marketYearIndex === null)
-    .forEach((band) => {
-      EMPTY_YEAR_GHOST_FRACTIONS.forEach((fraction) => {
-        const radii = band.innerBoundary.map((innerRadius, sample) =>
-          innerRadius + (band.outerBoundary[sample] - innerRadius) * fraction);
-        strokeGhostContour(context, radii, center, colors.grain);
-      });
+  const emptyYearBands = geometry.yearBands.filter((band) => band.marketYearIndex === null);
+  emptyYearBands.forEach((band) => {
+    EMPTY_YEAR_GHOST_FRACTIONS.forEach((fraction) => {
+      const radii = band.innerBoundary.map((innerRadius, sample) =>
+        innerRadius + (band.outerBoundary[sample] - innerRadius) * fraction);
+      strokeGhostContour(context, radii, center, colors.grain);
     });
+  });
+
+  const lastEmptyBand = emptyYearBands.at(-1);
+  const firstDataRing = rings[0];
+  if (lastEmptyBand && firstDataRing) {
+    const outermostEmptyRadii = lastEmptyBand.innerBoundary.map((innerRadius, sample) =>
+      innerRadius + (lastEmptyBand.outerBoundary[sample] - innerRadius) * 0.9);
+    INTERSTITIAL_GHOST_FRACTIONS.forEach((fraction) => {
+      const radii = outermostEmptyRadii.map((radius, sample) =>
+        radius + (firstDataRing.radii[sample] - radius) * fraction);
+      strokeGhostContour(context, radii, center, colors.grain);
+    });
+  }
 
   for (let index = 0; index < rings.length - 1; index += 1) {
-    [0.17, 0.34, 0.52, 0.7, 0.84].forEach((fraction, grainIndex) => {
+    INTERSTITIAL_GHOST_FRACTIONS.forEach((fraction, grainIndex) => {
       const radii = rings[index].radii.map((radius, sample) => {
         const next = rings[index + 1].radii[sample];
         const angle = -Math.PI / 2 + (sample / SAMPLE_COUNT) * TAU;

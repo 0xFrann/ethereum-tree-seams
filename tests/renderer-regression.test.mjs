@@ -19,7 +19,8 @@ test("retains the recovered year-end ease, closed bark, wedge, and labels", asyn
   const source = await readFile(rendererUrl, "utf8");
   assert.match(source, /const eased = t \* t \* \(3 - 2 \* t\)/);
   assert.match(source, /const endWeight = -2 \* t3 \+ 3 \* t2/);
-  assert.match(source, /\[0\.17, 0\.34, 0\.52, 0\.7, 0\.84\]\.forEach/);
+  assert.match(source, /const INTERSTITIAL_GHOST_FRACTIONS = \[0\.17, 0\.34, 0\.52, 0\.7, 0\.84\]/);
+  assert.match(source, /INTERSTITIAL_GHOST_FRACTIONS\.forEach/);
   assert.doesNotMatch(source, /deformGrainPoint/);
   assert.match(source, /drawBark\(context, rings\.at\(-1\)!\.radii, bark, center, colors\.bark\)/);
   assert.match(source, /context\.fill\("evenodd"\)/);
@@ -86,4 +87,14 @@ test("keeps pre-market ghost rings circular so events sit on their host ring", a
   assert.match(preMarketBlock, /band\.outerBoundary\[sample\]/);
   assert.match(preMarketBlock, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
   assert.doesNotMatch(preMarketBlock, /Math\.sin|bandIndex/);
+});
+
+test("bridges empty years into the first data ring without a blank annulus", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+
+  assert.match(source, /const lastEmptyBand = emptyYearBands\.at\(-1\)/);
+  assert.match(source, /const firstDataRing = rings\[0\]/);
+  assert.match(source, /const outermostEmptyRadii = lastEmptyBand\.innerBoundary\.map/);
+  assert.match(source, /firstDataRing\.radii\[sample\] - radius/);
+  assert.match(source, /strokeGhostContour\(context, radii, center, colors\.grain\)/);
 });

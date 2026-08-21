@@ -368,8 +368,8 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             </div>
             <div className="canvas-instrument source-note">
               <span>Sources</span>
-              <p><a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a> · <a href="#events">Events ↓</a> · <a href="#method">Method ↓</a></p>
-              <small>* Price history starts {formatDate(data.chronology.marketDataFrom)}; the experiment origin is {formatDate(data.chronology.origin)}.</small>
+              <p><a href={data.source.url} target="_blank" rel="noreferrer">Data ↗</a> · <a href="#events">Events ↓</a> · <a href="#method">Method ↓</a></p>
+              <small>* Price from: {formatDate(data.chronology.marketDataFrom)}<br />Origin: {formatDate(data.chronology.origin)}</small>
             </div>
           </div>
           <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month.</p>

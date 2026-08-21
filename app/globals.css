@@ -133,6 +133,7 @@ button { font: inherit; }
 .construction-grid p, .construction-grid code { color: var(--secondary-ink); font: 11px/1.5 var(--font-mono); }
 .construction-grid p { margin: 0; }
 .construction-grid code { display: block; margin-bottom: 4px; color: var(--ink); white-space: normal; }
+.construction-grid sub { position: relative; bottom: -.18em; font-size: .9em; line-height: 0; vertical-align: baseline; }
 @keyframes construction-rise { from { opacity: 0; transform: translate(-50%, 7px); } to { opacity: 1; transform: translate(-50%, 0); } }
 .key-line { border-top: 1px solid var(--ink); transform: rotate(-3deg); }
 .key-weight { border-top: 4px solid var(--ink); transform: rotate(2deg); }

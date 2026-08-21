@@ -169,7 +169,7 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
     // A year ring always remains visually authoritative, even where its
     // volume encoding is at rest. The interstitial contours below are only
     // ghost grain and must never read at the same weight.
-    const rest = Math.max(1.15, gap * 0.04);
+    const rest = Math.max(0.9, gap * 0.032);
     const widths = Array.from({ length: SAMPLE_COUNT }, (_, index) => {
       const monthPosition = (index / SAMPLE_COUNT) * 12;
       const month = Math.min(year.months.length - 1, Math.floor(monthPosition) % 12);
@@ -463,8 +463,8 @@ export function drawStaticArtwork(
         return Math.max(radius + gap * 0.045, Math.min(next - gap * 0.045, value));
       });
       context.strokeStyle = colors.grain;
-      context.lineWidth = 0.55;
-      context.globalAlpha = 0.24;
+      context.lineWidth = 0.78;
+      context.globalAlpha = 0.44;
       traceContour(context, radii, center, startSample, sampleCount, startSample === 0 && sampleCount === SAMPLE_COUNT);
       context.stroke();
     });
@@ -472,7 +472,7 @@ export function drawStaticArtwork(
   context.globalAlpha = 1;
   rings.forEach((ring) => {
     const end = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
-    fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.92);
+    fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.82);
   });
   rings.forEach((ring) => strokeFutureContour(context, ring, center, colors.muted));
 
@@ -582,20 +582,13 @@ export function drawEventSelection(
     ? geometry.events.scars.find((candidate) => candidate.eventId === selection.id)
     : undefined;
   context.save();
-  context.strokeStyle = color;
   context.fillStyle = color;
-  context.lineWidth = 1.5;
+  context.globalAlpha = 1;
   if (knot) {
     tracePointPath(context, knot.path, true);
-    context.stroke();
-    context.beginPath();
-    context.arc(knot.anchor.truePoint.x, knot.anchor.truePoint.y, 2.5, 0, TAU);
     context.fill();
   } else if (scar) {
     tracePointPath(context, scar.polygon, true);
-    context.stroke();
-    context.beginPath();
-    context.arc(scar.anchor.truePoint.x, scar.anchor.truePoint.y, 3, 0, TAU);
     context.fill();
   }
   context.restore();

@@ -49,15 +49,20 @@ test("implements labelled modal, explicit close, Escape, and focus restoration",
 });
 
 test("provides a persistent labelled reopen control and visible tooltip", () => {
-  assert.match(component, /aria-label="Read introduction"/);
+  assert.match(component, /aria-label="About this experiment"/);
   assert.match(component, /role="tooltip"/);
-  assert.match(component, /aria-describedby=\{tooltipVisible \? tooltipId : undefined\}/);
-  assert.doesNotMatch(component, /title="Read introduction"/);
-  assert.match(styles, /\.reopenButton\s*\{[\s\S]*width:\s*44px;[\s\S]*height:\s*44px;/);
+  assert.match(component, /aria-describedby=\{controls\.tooltipId\}/);
+  assert.match(styles, /\.reopenControl:hover \.tooltip,[\s\S]*\.reopenControl:focus-within \.tooltip/);
+  assert.doesNotMatch(component, /title="About this experiment"/);
+  assert.match(styles, /\.reopenButton\s*\{[\s\S]*width:\s*30px;[\s\S]*height:\s*30px;/);
+  assert.match(styles, /\.reopenButton::before\s*\{[\s\S]*inset:\s*-7px;/);
+  assert.doesNotMatch(styles, /\.reopenButton > span \{[^}]*border:/);
 });
 
 test("locks scrolling without making animation a behavior gate", () => {
-  assert.match(component, /body\.style\.position = "fixed"/);
+  assert.match(component, /body\.style\.overflow = "hidden"/);
+  assert.match(component, /scrollbarWidth = window\.innerWidth - document\.documentElement\.clientWidth/);
+  assert.match(component, /body\.style\.paddingRight = `\$\{scrollbarWidth\}px`/);
   assert.match(component, /window\.scrollTo/);
   assert.doesNotMatch(component, /transitionend|animationend/);
   assert.match(styles, /prefers-reduced-motion:\s*reduce/);
@@ -80,6 +85,9 @@ test("keeps explorer states and interaction semantics explicit", () => {
   assert.match(explorer, /role="group"/);
   assert.match(explorer, /aria-roledescription="interactive chart"/);
   assert.match(explorer, /role="status" aria-live="polite"/);
+  assert.match(explorer, /visibilitychange/);
+  assert.match(explorer, /document\.visibilityState === "hidden"/);
+  assert.doesNotMatch(explorer, /setInterval\(refresh/);
   assert.match(globalStyles, /\.canvas-shell \{ width: min\(100%, 440px\); \}/);
 });
 
@@ -93,9 +101,25 @@ test("keeps chart interaction month-based and restores the latest month when idl
   assert.doesNotMatch(explorer, /className="event-button"/);
 });
 
-test("uses solid dark control highlights without outlined boxes", () => {
-  assert.match(globalStyles, /\.year-button\[aria-pressed="true"\], \.month-button\[aria-pressed="true"\] \{[^}]*color: var\(--paper\);[^}]*background: var\(--ink\);/);
-  assert.match(globalStyles, /\.year-button:focus-visible, \.month-button:focus-visible \{ outline: 0;[^}]*background: var\(--secondary-ink\);/);
+test("uses a cohesive instrument rail and quiet control highlights", () => {
+  assert.match(globalStyles, /\.instrument-column \{[^}]*min-height: calc\(100svh - clamp\(28px, 4vw, 48px\)\);[^}]*border-left: 1px solid var\(--line-strong\);[^}]*align-self: stretch;/);
+  assert.match(globalStyles, /\.selector-block \{[^}]*border-bottom: 1px solid var\(--line\);[^}]*grid-template-columns: 112px/);
+  assert.match(globalStyles, /\.year-button\[aria-pressed="true"\], \.month-button\[aria-pressed="true"\] \{[^}]*color: var\(--ink\);[^}]*background: rgb\(23 26 23 \/ 6%\);/);
+  assert.match(globalStyles, /\.year-button\[aria-pressed="true"\]::after, \.month-button\[aria-pressed="true"\]::after \{[^}]*height: 2px;[^}]*background: var\(--ink\);/);
+  assert.match(explorer, /01 \/ <\/span>Market year/);
+  assert.match(explorer, /02 \/ <\/span>Observed month/);
+  assert.match(explorer, /03 \/ <\/span>Market reading/);
+});
+
+test("keeps the instrument hierarchy compact", () => {
+  assert.match(globalStyles, /\.project-intro h1 \{[^}]*clamp\(18px,/);
+  assert.match(globalStyles, /\.readout-grid \{[^}]*grid-template-columns: \.8fr \.8fr 1\.4fr;/);
+  assert.match(explorer, /formatUpdatedTimestamp/);
+  assert.match(explorer, /className="event-meta"/);
+  assert.match(explorer, /String\(eventIndex \+ 4\)\.padStart\(2, "0"\)/);
+  assert.doesNotMatch(explorer, /item\.record\.summary/);
+  assert.doesNotMatch(explorer, /item\.record\.recoveryStatus/);
+  assert.doesNotMatch(explorer, /item\.record\.confidence/);
 });
 
 test("keeps graph selection and metadata monochrome", () => {
@@ -104,12 +128,14 @@ test("keeps graph selection and metadata monochrome", () => {
   assert.match(globalStyles, /--ring-bark: #6b6d66/);
   assert.match(explorer, /styles\.getPropertyValue\("--paper"\)\.trim\(\)/);
   assert.match(globalStyles, /\.return-stamp \.positive, \.return-stamp \.negative \{ color: var\(--ink\); \}/);
-  assert.match(globalStyles, /\.source-note a \{ color: var\(--secondary-ink\); \}/);
+  assert.match(globalStyles, /\.source-note a \{[^}]*color: var\(--secondary-ink\);/);
 });
 
 test("keeps one dedicated method section and separate event and method links", () => {
-  assert.match(explorer, />Data ↗<\/a> · <a href="#events">Events ↓<\/a> · <a href="#method">Method ↓<\/a>/);
-  assert.match(explorer, /\* Price from: \{formatDate\(data\.chronology\.marketDataFrom\)\}<br \/>Origin: \{formatDate\(data\.chronology\.origin\)\}/);
+  assert.match(explorer, />Market data ↗<\/a>/);
+  assert.match(explorer, /<a href="#events">Knots \+ scars ↓<\/a>/);
+  assert.match(explorer, /<a href="#method">Method ↓<\/a>/);
+  assert.doesNotMatch(explorer, /\* Price from:/);
   assert.match(explorer, /<section id="events" className="event-index"/);
   assert.match(explorer, /<section id="method" className="methodology" aria-labelledby="method-title">/);
   assert.match(explorer, /How the rings are built/);
@@ -119,7 +145,7 @@ test("keeps one dedicated method section and separate event and method links", (
   assert.match(explorer, /R<sub>y<\/sub>\(θ\) = R<sub>y−1<\/sub>\(θ\) \+ 0\.9g \+ 0\.39g · price<sub>y<\/sub>\(θ\)/);
   assert.match(explorer, /clearance prevents collisions/);
   assert.match(globalStyles, /\.methodology \{ display: grid; grid-template-columns: minmax\(180px, \.25fr\) 1fr/);
-  assert.match(globalStyles, /\.source-note p \{[^}]*white-space: nowrap;/);
+  assert.match(globalStyles, /\.source-note \{[^}]*display: grid;/);
   assert.match(globalStyles, /\.method-steps sub \{[^}]*font-size: \.9em;/);
   assert.doesNotMatch(globalStyles, /\.construction-drawer|\.construction-panel/);
 });

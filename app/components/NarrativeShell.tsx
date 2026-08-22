@@ -1,12 +1,13 @@
 "use client";
 
 import {
+  createContext,
   useCallback,
+  useContext,
   useId,
   useLayoutEffect,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type ReactNode,
 } from "react";
@@ -23,6 +24,12 @@ const INTRODUCTION = [
 
 type NarrativeMode = "checking-session" | "first-open" | "closed" | "reopened";
 type PendingFocus = HTMLElement | "explorer" | null;
+type NarrativeControls = {
+  reopen: (event: ReactMouseEvent<HTMLButtonElement>) => void;
+  tooltipId: string;
+};
+
+const NarrativeControlsContext = createContext<NarrativeControls | null>(null);
 
 let memoryDismissed = false;
 
@@ -56,9 +63,30 @@ function getFocusableElements(container: HTMLElement) {
   );
 }
 
+export function NarrativeReopenControl() {
+  const controls = useContext(NarrativeControlsContext);
+  if (!controls) return null;
+
+  return (
+    <div className={styles.reopenControl}>
+      <button
+        type="button"
+        className={styles.reopenButton}
+        aria-label="About this experiment"
+        aria-describedby={controls.tooltipId}
+        onClick={controls.reopen}
+      >
+        <span aria-hidden="true">i</span>
+      </button>
+      <span id={controls.tooltipId} role="tooltip" className={styles.tooltip}>
+        About this experiment
+      </span>
+    </div>
+  );
+}
+
 export function NarrativeShell({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<NarrativeMode>("checking-session");
-  const [tooltipVisible, setTooltipVisible] = useState(false);
   const backgroundRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -97,7 +125,6 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
   }, []);
 
   const closeNarrative = useCallback(() => {
-    setTooltipVisible(false);
     if (mode === "first-open") {
       storeDismissal();
       pendingFocusRef.current = "explorer";
@@ -109,7 +136,6 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
 
   const reopenNarrative = useCallback((event: ReactMouseEvent<HTMLButtonElement>) => {
     openerRef.current = event.currentTarget;
-    setTooltipVisible(false);
     setMode("reopened");
   }, []);
 
@@ -136,23 +162,18 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
 
     const scrollY = window.scrollY;
     const body = document.body;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
     const previous = {
       overflow: body.style.overflow,
-      position: body.style.position,
-      top: body.style.top,
-      width: body.style.width,
+      paddingRight: body.style.paddingRight,
     };
 
     body.style.overflow = "hidden";
-    body.style.position = "fixed";
-    body.style.top = `${-scrollY}px`;
-    body.style.width = "100%";
+    if (scrollbarWidth > 0) body.style.paddingRight = `${scrollbarWidth}px`;
 
     return () => {
       body.style.overflow = previous.overflow;
-      body.style.position = previous.position;
-      body.style.top = previous.top;
-      body.style.width = previous.width;
+      body.style.paddingRight = previous.paddingRight;
       window.scrollTo({ top: scrollY, left: 0, behavior: "auto" });
     };
   }, [open]);
@@ -195,14 +216,8 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
     return () => document.removeEventListener("keydown", handleKeyDown, true);
   }, [closeNarrative, open]);
 
-  const handleTooltipKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      setTooltipVisible(false);
-    }
-  };
-
   return (
+    <NarrativeControlsContext.Provider value={{ reopen: reopenNarrative, tooltipId }}>
     <div className={styles.shell} data-narrative-mode={mode}>
       <div
         ref={backgroundRef}
@@ -211,27 +226,6 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
         inert={blocked}
         tabIndex={-1}
       >
-        <div className={styles.reopenControl}>
-          <button
-            type="button"
-            className={styles.reopenButton}
-            aria-label="Read introduction"
-            aria-describedby={tooltipVisible ? tooltipId : undefined}
-            onClick={reopenNarrative}
-            onFocus={() => setTooltipVisible(true)}
-            onBlur={() => setTooltipVisible(false)}
-            onPointerEnter={() => setTooltipVisible(true)}
-            onPointerLeave={() => setTooltipVisible(false)}
-            onKeyDown={handleTooltipKeyDown}
-          >
-            <span aria-hidden="true">i</span>
-          </button>
-          {tooltipVisible ? (
-            <span id={tooltipId} role="tooltip" className={styles.tooltip}>
-              Read introduction
-            </span>
-          ) : null}
-        </div>
         {children}
       </div>
 
@@ -281,5 +275,6 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
         </div>
       ) : null}
     </div>
+    </NarrativeControlsContext.Provider>
   );
 }

@@ -18,11 +18,11 @@ test("renders the archival specimen shell and cache-loading boundary at the root
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   const html = await response.text();
   assert.match(html, /<title>Ethereum Annual Rings<\/title>/i);
-  assert.match(html, /Spec_ID · ETH_TREE_001/i);
+  assert.match(html, /<h1[^>]*>ETH_TREE_001<\/h1>/i);
   assert.match(html, /ETH\/USD growth, grain, and scars/);
   assert.match(html, /https:\/\/www\.linkedin\.com\/in\/franndalmasso/);
   assert.match(html, /https:\/\/github\.com\/0xFrann\/ethereum-tree-seams/);
-  assert.match(html, /Loading the cached Bitstamp market history/);
+  assert.match(html, /Loading Bitstamp market history/);
   assert.doesNotMatch(html, /site-header|wordmark|eth-diamond\.svg/);
   assert.doesNotMatch(html, /Seven annual lives|Methodology &amp; data notes|<footer/i);
   assert.doesNotMatch(html, /eth-market\.json|codex-preview|annual-eth-rings\.html/i);

@@ -27,6 +27,8 @@ import {
   hitTestEvent,
   type Geometry,
 } from "./eth-rings/renderer";
+import { NarrativeReopenControl } from "./NarrativeShell";
+import { loadChainHeadFromClient, loadMarketDataFromClient } from "../../lib/client-fetch.mjs";
 
 type LoadState =
   | { status: "loading" }
@@ -37,32 +39,82 @@ type TimelineEvent =
   | { kind: "milestone"; record: Milestone }
   | { kind: "scar"; record: Scar };
 
+type ChainHead = {
+  blockHash: string;
+  blockNumber: number;
+  timestamp: number;
+  transactionCount: number;
+};
+
+function useChainHead() {
+  const [head, setHead] = useState<ChainHead | null>(null);
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    let active = true;
+    const refresh = () => {
+      if (document.visibilityState === "hidden") return;
+      void loadChainHeadFromClient()
+        .then((next) => { if (active) setHead(next); })
+        .catch(() => { /* The previous valid head remains visible. */ });
+    };
+
+    refresh();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    const ageTimer = window.setInterval(() => setNow(Date.now()), 1_000);
+    return () => {
+      active = false;
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.clearInterval(ageTimer);
+    };
+  }, []);
+
+  return { head, now };
+}
+
+function shortHash(value: string) {
+  return `${value.slice(0, 8)}…${value.slice(-6)}`;
+}
+
 function ProjectIntro() {
+  const { head, now } = useChainHead();
+  const age = head ? Math.max(0, Math.floor(now / 1000) - head.timestamp) : null;
+
   return (
     <header className="project-intro">
-      <h1 id="page-title">Spec_ID · ETH_TREE_001</h1>
+      <div className="title-line">
+        <h1 id="page-title">ETH_TREE_001</h1>
+        <NarrativeReopenControl />
+      </div>
+      <p className="specimen-id">Visual experiment · Ethereum mainnet</p>
+      <p className="author-line">Author · <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">Fran Dalmasso ↗</a></p>
       <nav className="utility-nav" aria-label="Project links">
-        <a className="utility-link" href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">LinkedIn ↗</a>
         <a className="utility-link" href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer">Code ↗</a>
       </nav>
       <p className="dek">ETH/USD growth, grain, and scars rendered as a living market archive.</p>
+      <div className="chain-readout" aria-label="Live Ethereum mainnet head">
+        <span aria-label={head ? `Latest block ${head.blockNumber}` : "Reading Ethereum mainnet"}>{head ? `#${head.blockNumber.toLocaleString("en-US")}` : "…"}</span>
+        <span aria-label={head ? `Block hash ${head.blockHash}` : "Block hash unavailable"}>{head ? shortHash(head.blockHash) : "—"}</span>
+        <span aria-label={head ? `${head.transactionCount} transactions in the latest block` : "Transaction count unavailable"}>{head ? `${head.transactionCount.toLocaleString("en-US")} tx` : "—"}</span>
+        <span aria-label={age === null ? "Block age unavailable" : `Block observed ${age} seconds ago`}>{age === null ? "—" : `${age}s ago`}</span>
+      </div>
     </header>
   );
 }
 
 let marketDataRequest: Promise<MarketData> | null = null;
 
-function loadMarketData() {
+function loadMarketData(force = false) {
+  if (force) marketDataRequest = null;
   if (!marketDataRequest) {
-    marketDataRequest = fetch("/api/market-data", { headers: { accept: "application/json" } })
-      .then(async (response) => {
-        const body = await response.json();
-        if (!response.ok) throw new Error(body.error ?? "Unable to load the market specimen.");
-        return body as MarketData;
-      })
+    marketDataRequest = loadMarketDataFromClient({ force })
+      .then((body) => body as MarketData)
       .catch((error) => {
         marketDataRequest = null;
-        throw error;
+        throw error instanceof Error ? error : new Error("Unable to load the market specimen.");
       });
   }
   return marketDataRequest;
@@ -77,7 +129,7 @@ export function EthRings() {
 
   useEffect(() => {
     let active = true;
-    void loadMarketData()
+    void loadMarketData(attempt > 0)
       .then((data) => active && setLoadState({ status: "ready", data }))
       .catch((error: Error) => active && setLoadState({ status: "error", message: error.message }));
     return () => { active = false; };
@@ -96,7 +148,7 @@ export function EthRings() {
         <div className="explorer-layout">
           <div ref={entryTargetRef as RefObject<HTMLDivElement | null>} id="rings-explorer-entry" className="visualization explorer-state" tabIndex={-1} onFocus={() => { pendingEntryFocus.current = true; }}>
             <p className="state-kicker">Preparing specimen</p>
-            <p role="status">Loading the cached Bitstamp market history…</p>
+            <p role="status">Loading Bitstamp market history…</p>
           </div>
           <div className="instrument-column"><ProjectIntro /></div>
         </div>
@@ -367,9 +419,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <span><i className="key-scar" aria-hidden="true" /><b>Scars:</b> Magnitude</span>
             </div>
             <div className="canvas-instrument source-note">
-              <span>Sources</span>
-              <p><a href={data.source.url} target="_blank" rel="noreferrer">Data ↗</a> · <a href="#events">Events ↓</a> · <a href="#method">Method ↓</a></p>
-              <small>* Price from: {formatDate(data.chronology.marketDataFrom)}<br />Origin: {formatDate(data.chronology.origin)}</small>
+              <a href={data.source.url} target="_blank" rel="noreferrer">Market data ↗</a>
+              <a href="#events">Knots + scars ↓</a>
+              <a href="#method">Method ↓</a>
             </div>
           </div>
           <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month.</p>
@@ -381,13 +433,13 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           <div className="specimen-meta" aria-label="Live specimen metadata">
             <div><span>Origin</span><strong>{formatDate(data.chronology.origin)}</strong></div>
             <div><span>First market data</span><strong>{formatDate(data.chronology.marketDataFrom)}</strong></div>
-            <div><span>Updated</span><strong>{formatTimestamp(data.cache.updatedAt)}</strong></div>
+            <div><span>Updated</span><strong>{formatUpdatedTimestamp(data.cache.updatedAt)}</strong></div>
           </div>
 
           <aside className="explorer-panel" aria-label="Market instrument panel">
           <div className="explorer-controls" aria-label="Choose a year and month">
             <div className="selector-block">
-              <p className="selector-label">Market year</p>
+              <p className="selector-label"><span aria-hidden="true">01 / </span>Market year</p>
               <div className="year-tabs" role="group" aria-label="Market year">
                 {data.years.map((item, index) => (
                   <button key={item.year} type="button" className="year-button" aria-pressed={selection.yearIndex === index} onClick={() => selectYear(index)}>
@@ -397,7 +449,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               </div>
             </div>
             <div className="selector-block">
-              <p className="selector-label">Observed month</p>
+              <p className="selector-label"><span aria-hidden="true">02 / </span>Observed month</p>
               <div className="month-tabs" role="group" aria-label="Observed month">
                 {MONTHS.map((name, index) => {
                   const available = year.months.some((item) => item.month === index);
@@ -412,6 +464,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           </div>
 
           <section id="rings-readout" className="readout" aria-label={`${MONTHS[selection.month]} ${year.year} market details`}>
+            <p className="selector-label readout-label"><span aria-hidden="true">03 / </span>Market reading</p>
             <div className="price-movement" aria-label={`Opened at ${priceUsd(month.open)} and closed at ${priceUsd(month.close)}`}>
               <div><span>Open</span><strong>{priceUsd(month.open)}</strong></div><span className="price-arrow" aria-hidden="true">→</span><div><span>Close</span><strong>{priceUsd(month.close)}</strong></div>
             </div>
@@ -421,13 +474,18 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
               <div><dt>Observed range</dt><dd>{annualRange}</dd></div>
             </dl>
 
-            {selectedEvents.map((item) => (
+            {selectedEvents.map((item, eventIndex) => (
               <div className="event-detail" key={`${item.kind}:${item.record.id}`}>
-                <p className="event-type">{item.kind === "milestone" ? "Milestone" : "Scar"} · {formatDate(item.record.date)}</p>
+                <p className="event-type">
+                  <span aria-hidden="true">{String(eventIndex + 4).padStart(2, "0")} / </span>
+                  {item.kind === "milestone" ? "Milestone" : "Scar"} · {formatDate(item.record.date)}
+                </p>
                 <h2>{item.record.name}</h2>
-                <p>{item.record.summary}</p>
-                {item.kind === "scar" ? <><p><strong>Affected layer:</strong> {item.record.affectedLayer}</p><p><strong>Reported impact:</strong> {item.record.reportedImpact}</p><p><strong>Outcome:</strong> {item.record.recoveryStatus}</p></> : <p><strong>Category:</strong> {item.record.category}{item.record.activation ? ` · ${item.record.activation}` : ""}</p>}
-                <p><strong>Confidence:</strong> {item.record.confidence}</p>
+                <p className="event-meta">
+                  {item.kind === "scar"
+                    ? `${item.record.affectedLayer} · ${item.record.reportedImpact}`
+                    : `${item.record.category}${item.record.activation ? ` · ${item.record.activation}` : ""}`}
+                </p>
                 <a href={item.record.sourceUrl} target="_blank" rel="noreferrer">Primary source ↗</a>
               </div>
             ))}
@@ -479,7 +537,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             <p>{data.methodology.caveat}</p>
             <p>Knot and scar details, including primary sources, appear with the month that contains them.</p>
             <p>Source boundary: {data.source.timezone}. {data.source.gaps.length ? `${data.source.gaps.length} missing source day${data.source.gaps.length === 1 ? "" : "s"}: ${data.source.gaps.join(", ")}.` : "No missing source days detected."}</p>
-            <a href={data.source.url} target="_blank" rel="noreferrer">CryptoDataDownload Bitstamp source ↗</a>
+            <a href={data.source.url} target="_blank" rel="noreferrer">Bitstamp OHLC source ↗</a>
           </div>
         </div>
       </section>
@@ -491,6 +549,15 @@ function formatDate(value: string) {
   return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${value}T00:00:00Z`));
 }
 
-function formatTimestamp(value: string) {
-  return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC", timeZoneName: "short" }).format(new Date(value));
+function formatUpdatedTimestamp(value: string) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+    timeZone: "UTC",
+  }).formatToParts(new Date(value));
+  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find((item) => item.type === type)?.value;
+  return `${part("day")} ${part("month")} · ${part("hour")}:${part("minute")} UTC`;
 }

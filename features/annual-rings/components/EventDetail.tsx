@@ -12,7 +12,7 @@ export function EventDetail({ data, selection }: EventDetailProps) {
   if (!event) return null;
 
   return (
-    <aside className="event-detail" aria-live="polite">
+    <aside className="event-detail" aria-label="Selected event" aria-live="polite">
       <p>{event.date}</p>
       <h3>{event.name}</h3>
       <p>{event.summary}</p>

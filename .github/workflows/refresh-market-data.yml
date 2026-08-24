@@ -1,0 +1,27 @@
+name: Refresh market data
+
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: refresh-market-data
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh Vercel’s private market cache
+        env:
+          MARKET_REFRESH_URL: ${{ secrets.MARKET_REFRESH_URL }}
+          MARKET_REFRESH_SECRET: ${{ secrets.MARKET_REFRESH_SECRET }}
+        run: |
+          test -n "$MARKET_REFRESH_URL"
+          test -n "$MARKET_REFRESH_SECRET"
+          curl --fail-with-body --retry 2 --retry-all-errors \
+            --header "Authorization: Bearer $MARKET_REFRESH_SECRET" \
+            --request POST "$MARKET_REFRESH_URL"

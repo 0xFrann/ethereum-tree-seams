@@ -5,6 +5,7 @@ import type { EventSelection } from '../domain/types';
 import { useMarketData } from '../hooks/use-market-data';
 import { useMonthSelection } from '../hooks/use-month-selection';
 import { EventList } from './EventList';
+import { EventDetail } from './EventDetail';
 import { MarketReadout } from './MarketReadout';
 import { MarketStatus } from './MarketStatus';
 import { PeriodControls } from './PeriodControls';
@@ -46,6 +47,7 @@ export function AnnualRingsExplorer() {
       <PeriodControls data={data} selection={selection} onSelect={select} />
       <MarketReadout data={data} selection={selection} />
       <EventList data={data} selection={eventSelection} onSelect={setEventSelection} />
+      <EventDetail data={data} selection={eventSelection} />
     </section>
   );
 }

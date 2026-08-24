@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test",
     "test:e2e": "playwright test",
-    "test:all": "npm run format && npm run lint && npm run stylelint && npm run typecheck && npm run test && npm run build",
+    "test:all": "npm run format && npm run lint && npm run stylelint && npm run typecheck && npm run test && npm run build && npm run test:e2e",
     "deadcode": "knip",
     "audit": "npm audit --audit-level=high",
     "data:seed": "tsx scripts/seed-market-data.ts",

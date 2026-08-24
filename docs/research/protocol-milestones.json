@@ -1,0 +1,399 @@
+{
+  "schemaVersion": 1,
+  "title": "Ethereum protocol milestone candidates",
+  "scope": {
+    "network": "Ethereum mainnet",
+    "from": "2015-07-30T15:26:13Z",
+    "through": "2026-08-21T23:59:59Z",
+    "checkedDate": "2026-08-21",
+    "timezone": "UTC"
+  },
+  "selectionPolicy": "Frontier genesis is an origin marker. Visible knots are limited to events that materially changed Ethereum's operating phase, consensus, fee market, scaling model, staking lifecycle, or broadly useful execution behavior; routine, preparatory, difficulty-only, parameter-only, and future upgrades are excluded.",
+  "candidates": [
+    {
+      "id": "frontier-genesis",
+      "canonicalName": "Frontier genesis",
+      "aliases": ["Frontier", "Ethereum mainnet genesis"],
+      "activationDate": "2015-07-30",
+      "activationTimestamp": "2015-07-30T15:26:13Z",
+      "activation": { "kind": "genesis", "block": 0, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "genesis",
+      "summary": "Frontier was Ethereum's first live mainnet release, producing genesis block 0. It was deliberately bare-bones and aimed at technical users, but established the programmable mainnet represented by this chronology.",
+      "recommendation": "origin-marker",
+      "inclusionReason": "It is the conceptual and chronological origin of the artifact; use a pith/genesis marker so it is not confused with later protocol knots.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#frontier", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2015/07/30/ethereum-launches", "role": "backup", "type": "ethereum-foundation-launch-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "ethereum.org identifies genesis as block 0, while EIP-6953 lists Frontier's upgrade activation trigger as block 1. This dataset uses block 0 for genesis and does not treat block 1 as a second event."
+    },
+    {
+      "id": "homestead",
+      "canonicalName": "Homestead",
+      "aliases": ["Homestead release"],
+      "activationDate": "2016-03-14",
+      "activationTimestamp": "2016-03-14T18:49:53Z",
+      "activation": { "kind": "block", "block": 1150000, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "upgrade",
+      "summary": "Homestead was Ethereum's second major release and moved the network beyond the deliberately bare-bones Frontier phase. It introduced several protocol changes, DELEGATECALL, and devp2p forward-compatibility rules that supported later upgrades.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It marks Ethereum's first major operational maturation after launch and is historically recognizable.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2016/02/29/homestead-release", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#homestead", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "The announcement predicted an approximate Pi Day time; the exact timestamp is the observed value in ethereum.org's chronology."
+    },
+    {
+      "id": "dao-fork",
+      "canonicalName": "DAO fork",
+      "aliases": ["The DAO hard fork"],
+      "activationDate": "2016-07-20",
+      "activationTimestamp": "2016-07-20T13:20:40Z",
+      "activation": { "kind": "block", "block": 1920000, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "other",
+      "summary": "The DAO fork applied an irregular state change that moved affected DAO balances into a recovery contract. Some participants rejected the intervention and continued the unforked chain, now Ethereum Classic.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It is an exceptional protocol intervention with lasting chain-governance significance; its exploit remains a separate scar event.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2016/07/20/hard-fork-completed", "role": "primary", "type": "ethereum-foundation-protocol-completion-report", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#dao-fork", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "This record is the protocol fork, not the earlier DAO smart-contract exploit. Do not describe the exploit as an Ethereum protocol hack or merge its loss amount into this milestone."
+    },
+    {
+      "id": "byzantium",
+      "canonicalName": "Byzantium",
+      "aliases": ["Metropolis: Byzantium"],
+      "activationDate": "2017-10-16",
+      "activationTimestamp": "2017-10-16T05:22:11Z",
+      "activation": { "kind": "block", "block": 4370000, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "upgrade",
+      "summary": "Byzantium was the first Metropolis-stage fork. It expanded EVM error handling and cryptographic capabilities, delayed the difficulty bomb, and reduced the block reward from 5 ETH to 3 ETH.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "Its broad EVM, cryptographic, receipt, and issuance changes make it the defining 2017 protocol upgrade.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2017/10/12/byzantium-hf-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#byzantium", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "Metropolis is the parent development phase, not an alias for a single activation; Byzantium and Constantinople remain separate events."
+    },
+    {
+      "id": "constantinople-st-petersburg",
+      "canonicalName": "Constantinople / St. Petersburg",
+      "aliases": ["Constantinople", "St. Petersburg", "Metropolis: Constantinople"],
+      "activationDate": "2019-02-28",
+      "activationTimestamp": "2019-02-28T19:52:04Z",
+      "activation": { "kind": "block", "block": 7280000, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "upgrade",
+      "summary": "Constantinople and St. Petersburg activated together at the same block. Constantinople added CREATE2 and other EVM improvements while St. Petersburg simultaneously removed EIP-1283 after the originally planned activation was postponed for a security concern.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "The simultaneous pair completed the Metropolis phase and introduced enduring execution features; one knot avoids inventing two events at one block.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2019/02/22/ethereum-constantinople-st-petersburg-upgrade-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#constantinople", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "The upgrade has two canonical names because two protocol changes occurred at block 7,280,000. Use Constantinople as a compact label only if the detail view retains St. Petersburg."
+    },
+    {
+      "id": "beacon-chain-genesis",
+      "canonicalName": "Beacon Chain genesis",
+      "aliases": ["Beacon Chain launch", "Eth2 Phase 0"],
+      "activationDate": "2020-12-01",
+      "activationTimestamp": "2020-12-01T12:00:23Z",
+      "activation": { "kind": "consensus-genesis", "block": null, "epoch": 0, "slot": 0, "terminalTotalDifficulty": null },
+      "category": "consensus",
+      "summary": "The Beacon Chain began producing proof-of-stake blocks after its minimum deposit conditions were met. It initially ran beside proof-of-work mainnet without executing user transactions, then became Ethereum's consensus layer at The Merge.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It is the independent launch of the consensus system that now secures Ethereum and begins the proof-of-stake chapter before The Merge.",
+      "sources": [
+        { "url": "https://ethereum.org/roadmap/beacon-chain/", "role": "primary", "type": "official-roadmap-history", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2020/11/04/eth2-quick-update-no-19", "role": "backup", "type": "ethereum-foundation-specification-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "The configured MIN_GENESIS_TIME was 12:00:00 UTC; ethereum.org records the produced genesis block at 12:00:23 UTC. The deprecated contemporary alias Eth2 should not be the primary display name."
+    },
+    {
+      "id": "london-eip-1559",
+      "canonicalName": "London",
+      "aliases": ["London / EIP-1559", "EIP-1559 activation"],
+      "activationDate": "2021-08-05",
+      "activationTimestamp": "2021-08-05T12:33:42Z",
+      "activation": { "kind": "block", "block": 12965000, "epoch": null, "slot": null, "terminalTotalDifficulty": null },
+      "category": "fee market",
+      "summary": "London redesigned Ethereum's transaction fee market. EIP-1559 introduced a dynamically adjusted base fee that is burned and a separate priority fee, alongside several other EIPs in the fork.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It is Ethereum's most recognizable fee-market change and materially altered transaction pricing and ETH supply mechanics.",
+      "sources": [
+        { "url": "https://eips.ethereum.org/EIPS/eip-1559", "role": "primary", "type": "final-eip-specification", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2021/07/15/london-mainnet-announcement", "role": "backup", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#london", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "London contained five EIPs, so EIP-1559 is its headline feature rather than a complete synonym for every fork change."
+    },
+    {
+      "id": "the-merge",
+      "canonicalName": "The Merge",
+      "aliases": ["Paris", "Paris / The Merge"],
+      "activationDate": "2022-09-15",
+      "activationTimestamp": "2022-09-15T06:42:42Z",
+      "activation": { "kind": "terminal-total-difficulty", "block": 15537394, "epoch": null, "slot": null, "terminalTotalDifficulty": "58750000000000000000000" },
+      "category": "consensus",
+      "summary": "The Merge ended proof-of-work block production on Ethereum mainnet and adopted the Beacon Chain's proof-of-stake consensus. Ethereum retained its execution state and complete transaction history through the transition.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "This is the largest consensus change in Ethereum history and the chronology's most important single protocol knot.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2022/08/24/mainnet-merge-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/roadmap/merge/", "role": "backup", "type": "official-roadmap-history", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#paris-the-merge", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "The activation trigger was terminal total difficulty, not a scheduled block. PoW block 15,537,393 crossed the threshold and block 15,537,394 was the first post-Merge block; Bellatrix nine days earlier was preparatory and is excluded."
+    },
+    {
+      "id": "shapella",
+      "canonicalName": "Shanghai–Capella",
+      "aliases": ["Shapella", "Shanghai/Capella"],
+      "activationDate": "2023-04-12",
+      "activationTimestamp": "2023-04-12T22:27:35Z",
+      "activation": { "kind": "epoch", "block": 17034870, "epoch": 194048, "slot": 6209536, "terminalTotalDifficulty": null },
+      "category": "withdrawals",
+      "summary": "Shanghai execution changes and Capella consensus changes activated synchronously. Together they enabled partial and full validator withdrawals from the Beacon Chain to the execution layer.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It completed the initial proof-of-stake lifecycle by making staked principal and rewards withdrawable.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2023/03/28/shapella-mainnet-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#shanghai-capella-shapella", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "Shapella is the conventional combined short name; Shanghai and Capella are the execution- and consensus-layer names respectively."
+    },
+    {
+      "id": "dencun",
+      "canonicalName": "Cancun–Deneb",
+      "aliases": ["Dencun", "Cancun/Deneb"],
+      "activationDate": "2024-03-13",
+      "activationTimestamp": "2024-03-13T13:55:35Z",
+      "activation": { "kind": "epoch", "block": 19426587, "epoch": 269568, "slot": 8626176, "terminalTotalDifficulty": null },
+      "category": "scaling",
+      "summary": "Dencun introduced ephemeral blob transactions and a separate blob fee market through EIP-4844. This gave rollups a cheaper data-availability path than transaction calldata and laid the foundation for later data-availability sampling.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "Blob transactions changed Ethereum's scaling architecture and are central to the rollup-oriented roadmap.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2024/02/27/dencun-mainnet-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/roadmap/dencun/", "role": "backup", "type": "official-roadmap-history", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#cancun-deneb-dencun", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "The EF announcement rounds the time to 13:55 UTC; the maintained chronology records 13:55:35. Dencun is the combined short name for Cancun and Deneb."
+    },
+    {
+      "id": "pectra",
+      "canonicalName": "Prague–Electra",
+      "aliases": ["Pectra", "Prague/Electra"],
+      "activationDate": "2025-05-07",
+      "activationTimestamp": "2025-05-07T10:05:11Z",
+      "activation": { "kind": "epoch", "block": 22431084, "epoch": 364032, "slot": 11649024, "terminalTotalDifficulty": null },
+      "category": "upgrade",
+      "summary": "Pectra introduced EIP-7702 EOA code delegation and major validator-management improvements. These included higher effective balances, execution-triggered exits, on-chain deposit processing, and increased blob capacity.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "It delivered broadly legible account and staking changes while advancing scaling, making it more than a routine bundle.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2025/04/23/pectra-mainnet", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://eips.ethereum.org/EIPS/eip-7600", "role": "backup", "type": "final-hardfork-meta-eip", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#prague-electra-pectra", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "Pectra is the combined short name for Prague and Electra; there is no material date dispute."
+    },
+    {
+      "id": "fusaka",
+      "canonicalName": "Fulu–Osaka",
+      "aliases": ["Fusaka", "Osaka/Fulu"],
+      "activationDate": "2025-12-03",
+      "activationTimestamp": "2025-12-03T21:49:11Z",
+      "activation": { "kind": "epoch", "block": 23935694, "epoch": 411392, "slot": 13164544, "terminalTotalDifficulty": null },
+      "category": "scaling",
+      "summary": "Fusaka's headline PeerDAS change distributed blob custody and sampling across nodes instead of requiring every node to download every blob. It enabled safer blob-throughput scaling and also added execution-layer resource limits and repricing.",
+      "recommendation": "visible-knot",
+      "inclusionReason": "PeerDAS is a structural change to Ethereum's data-availability model and the latest activated named upgrade before the cutoff.",
+      "sources": [
+        { "url": "https://blog.ethereum.org/2025/11/06/fusaka-mainnet-announcement", "role": "primary", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" },
+        { "url": "https://eips.ethereum.org/EIPS/eip-7607", "role": "backup", "type": "final-hardfork-meta-eip", "checkedDate": "2026-08-21" },
+        { "url": "https://ethereum.org/ethereum-forks/#fulu-osaka-fusaka", "role": "backup", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "Official sources use both Fulu–Osaka and Osaka/Fulu ordering; Fusaka is the stable combined label. The later BPO forks are separate parameter-only exclusions."
+    }
+  ],
+  "exclusions": [
+    {
+      "id": "frontier-thawing",
+      "canonicalName": "Frontier Thawing",
+      "aliases": ["Frontier thawing fork"],
+      "activationDate": "2015-09-07",
+      "activationTimestamp": "2015-09-07T21:33:09Z",
+      "activation": { "kind": "block", "block": 200000, "epoch": null, "slot": null },
+      "category": "upgrade",
+      "summary": "Frontier Thawing lifted the restrictive launch gas limit and enabled ordinary transactions. It was an important stabilization step, but its story is subordinate to genesis and Homestead.",
+      "recommendation": "exclude",
+      "exclusionReason": "Avoids over-marking Ethereum's first months while retaining the more legible genesis and maturation events.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#frontier-thawing", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2015/08/04/the-thawing-frontier", "role": "backup", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "None material."
+    },
+    {
+      "id": "dos-response-forks",
+      "canonicalName": "Tangerine Whistle and Spurious Dragon",
+      "aliases": ["EIP-150 fork", "State clearing fork"],
+      "activationDate": "2016-10-18",
+      "activationTimestamp": "2016-10-18T13:19:31Z",
+      "activation": { "kind": "multiple-blocks", "block": 2463000, "epoch": null, "slot": null, "additionalBlock": 2675000, "additionalDate": "2016-11-22" },
+      "category": "other",
+      "summary": "Tangerine Whistle and Spurious Dragon were emergency responses to 2016 denial-of-service attacks, repricing underpriced operations and clearing state. They materially protected network health but would add two more knots to an already dense 2016 ring.",
+      "recommendation": "exclude",
+      "exclusionReason": "Preserve visual spacing and reserve headline knots for Homestead and the exceptional DAO protocol intervention.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#tangerine-whistle", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://eips.ethereum.org/EIPS/eip-6953", "role": "backup", "type": "final-eip-activation-index", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "This grouped exclusion contains two distinct activations; it must not be converted into one dated production event."
+    },
+    {
+      "id": "istanbul",
+      "canonicalName": "Istanbul",
+      "aliases": [],
+      "activationDate": "2019-12-08",
+      "activationTimestamp": "2019-12-08T00:25:09Z",
+      "activation": { "kind": "block", "block": 9069000, "epoch": null, "slot": null },
+      "category": "upgrade",
+      "summary": "Istanbul repriced EVM operations, improved DoS resilience, reduced cryptography and calldata costs, and added CHAINID. Its changes were meaningful, but less distinct in a sparse public chronology than the same-year Constantinople/St. Petersburg milestone.",
+      "recommendation": "exclude",
+      "exclusionReason": "Maintains a small visible set and avoids two general-purpose execution upgrades in 2019.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#istanbul", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://eips.ethereum.org/EIPS/eip-1679", "role": "backup", "type": "final-hardfork-meta-eip", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "None material."
+    },
+    {
+      "id": "difficulty-bomb-only-forks",
+      "canonicalName": "Difficulty-bomb-only forks",
+      "aliases": ["Muir Glacier", "Arrow Glacier", "Gray Glacier"],
+      "activationDate": "2020-01-02",
+      "activationTimestamp": "2020-01-02T08:30:49Z",
+      "activation": { "kind": "multiple-blocks", "block": 9200000, "epoch": null, "slot": null, "additionalBlocks": [13773000, 15050000], "additionalDates": ["2021-12-09", "2022-06-30"] },
+      "category": "other",
+      "summary": "Muir, Arrow, and Gray Glacier each postponed Ethereum's proof-of-work difficulty bomb. They maintained usability while proof of stake was prepared, but their narrative function is subsumed by The Merge.",
+      "recommendation": "exclude",
+      "exclusionReason": "They are single-purpose maintenance forks and would dilute the major-transition vocabulary.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#muir-glacier", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://eips.ethereum.org/EIPS/eip-6953", "role": "backup", "type": "final-eip-activation-index", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "This grouped exclusion contains three distinct activations and must not become one production event."
+    },
+    {
+      "id": "berlin",
+      "canonicalName": "Berlin",
+      "aliases": [],
+      "activationDate": "2021-04-15",
+      "activationTimestamp": "2021-04-15T10:07:03Z",
+      "activation": { "kind": "block", "block": 12244000, "epoch": null, "slot": null },
+      "category": "upgrade",
+      "summary": "Berlin repriced state access and introduced typed transaction envelopes and optional access lists. These are durable execution improvements, but London five months later provides a more distinct fee-market narrative.",
+      "recommendation": "exclude",
+      "exclusionReason": "One 2021 knot is sufficient for the sparse view, and London has higher recognizability and narrative value.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#berlin", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2021/03/08/ethereum-berlin-upgrade-announcement", "role": "backup", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "None material."
+    },
+    {
+      "id": "merge-preparatory-consensus-forks",
+      "canonicalName": "Altair and Bellatrix",
+      "aliases": ["Beacon Chain upgrades"],
+      "activationDate": "2021-10-27",
+      "activationTimestamp": "2021-10-27T10:56:23Z",
+      "activation": { "kind": "multiple-epochs", "block": null, "epoch": 74240, "slot": 2375680, "additionalEpoch": 144896, "additionalDate": "2022-09-06" },
+      "category": "consensus",
+      "summary": "Altair was the first Beacon Chain upgrade and added sync committees; Bellatrix prepared consensus clients for The Merge. Both are technically important, but their narrative is already bounded by Beacon Chain genesis and The Merge.",
+      "recommendation": "exclude",
+      "exclusionReason": "Avoids turning preparation for the consensus transition into multiple adjacent knots.",
+      "sources": [
+        { "url": "https://ethereum.org/ethereum-forks/#altair", "role": "primary", "type": "official-maintained-chronology", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2022/08/24/mainnet-merge-announcement", "role": "backup", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "This grouped exclusion contains two distinct activations and must not become one production event."
+    },
+    {
+      "id": "fusaka-bpo-forks",
+      "canonicalName": "Fusaka Blob Parameter Only forks",
+      "aliases": ["BPO1", "BPO2"],
+      "activationDate": "2025-12-09",
+      "activationTimestamp": "2025-12-09T14:21:11Z",
+      "activation": { "kind": "multiple-epochs", "block": null, "epoch": 412672, "slot": 13205504, "additionalEpoch": 419072, "additionalDate": "2026-01-07" },
+      "category": "scaling",
+      "summary": "BPO1 and BPO2 were preconfigured parameter-only forks that raised blob targets and maxima after Fusaka. They changed capacity without introducing a new named protocol feature set.",
+      "recommendation": "exclude",
+      "exclusionReason": "Parameter tuning should not share the same visual prominence as a named structural upgrade; Fusaka already represents the enabling change.",
+      "sources": [
+        { "url": "https://eips.ethereum.org/EIPS/eip-7607#blob-parameter-only-forks", "role": "primary", "type": "final-hardfork-meta-eip", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2025/11/06/fusaka-mainnet-announcement", "role": "backup", "type": "ethereum-foundation-protocol-announcement", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high",
+      "disputes": "BPOs are real fork activations but intentionally excluded from the named-milestone vocabulary."
+    },
+    {
+      "id": "glamsterdam",
+      "canonicalName": "Amsterdam–Gloas",
+      "aliases": ["Glamsterdam"],
+      "activationDate": null,
+      "activationTimestamp": null,
+      "activation": { "kind": "future-unscheduled", "block": null, "epoch": null, "slot": null },
+      "category": "scaling",
+      "summary": "Glamsterdam is the next named Ethereum upgrade and was planned for Q4 2026 as of the research cutoff. Its highlighted work includes enshrined proposer-builder separation and block-level access lists, but no mainnet activation date or epoch had been announced.",
+      "recommendation": "exclude-pending-activation",
+      "exclusionReason": "It falls after the 2026-08-21 cutoff and has not activated; future roadmap points must not appear as completed knots.",
+      "sources": [
+        { "url": "https://ethereum.org/roadmap/glamsterdam/", "role": "primary", "type": "official-upcoming-upgrade-page", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2026/04/10/checkpoint-9", "role": "backup", "type": "ethereum-foundation-protocol-status-update", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high-for-exclusion",
+      "disputes": "Feature scope and timing remain subject to change until an official mainnet announcement. Re-evaluate only after activation."
+    },
+    {
+      "id": "hegota-and-later",
+      "canonicalName": "Hegotá and later roadmap upgrades",
+      "aliases": ["Bogotá–Heze", "Hegotá"],
+      "activationDate": null,
+      "activationTimestamp": null,
+      "activation": { "kind": "future-unscheduled", "block": null, "epoch": null, "slot": null },
+      "category": "other",
+      "summary": "Hegotá is roadmap work intended to follow Glamsterdam, with later upgrades even further out. These future items are unactivated, incompletely scoped, and outside the research cutoff.",
+      "recommendation": "exclude",
+      "exclusionReason": "Future roadmap planning is not historical protocol chronology and is subject to change.",
+      "sources": [
+        { "url": "https://ethereum.org/roadmap/", "role": "primary", "type": "official-roadmap", "checkedDate": "2026-08-21" },
+        { "url": "https://blog.ethereum.org/2026/04/10/checkpoint-9", "role": "backup", "type": "ethereum-foundation-protocol-status-update", "checkedDate": "2026-08-21" }
+      ],
+      "confidence": "high-for-exclusion",
+      "disputes": "Naming and scope may change before activation."
+    }
+  ]
+}

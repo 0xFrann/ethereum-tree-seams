@@ -1,8 +1,14 @@
-import { blobMarketCache } from '@/server/market-cache/blob-store';
-import { readCachedMarketData } from '@/server/market-cache/read';
+export const dynamic = "force-dynamic";
 
-export const runtime = 'nodejs';
-
-export async function GET(): Promise<Response> {
-  return readCachedMarketData(blobMarketCache);
+export async function GET() {
+  return Response.json(
+    { error: "Market data cache is unavailable in this runtime." },
+    {
+      status: 503,
+      headers: {
+        "Cache-Control": "no-store",
+        "Retry-After": "3600",
+      },
+    },
+  );
 }

@@ -188,6 +188,36 @@
   font-size: 0.6rem;
 }
 
+:global(.event-detail) {
+  padding: 1rem;
+  border-left: 3px solid var(--color-accent);
+  background: color-mix(in srgb, var(--color-accent) 6%, transparent);
+}
+
+:global(.event-detail p) {
+  margin: 0;
+  line-height: 1.5;
+}
+
+:global(.event-detail p:first-child) {
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+}
+
+:global(.event-detail h3) {
+  margin: 0.35rem 0;
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  font-weight: 400;
+}
+
+:global(.event-detail a) {
+  display: inline-block;
+  margin-top: 0.7rem;
+  color: var(--color-accent);
+}
+
 @media (width >= 42rem) {
   :global(.month-controls) {
     grid-template-columns: repeat(12, 1fr);

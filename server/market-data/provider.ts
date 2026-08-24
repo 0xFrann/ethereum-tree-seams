@@ -2,8 +2,7 @@ import { aggregateMarketData } from '@/features/annual-rings/domain/aggregate';
 import { parseMarketCsv } from '@/features/annual-rings/domain/market';
 import type { MarketDocument } from '@/features/annual-rings/domain/types';
 
-export const MARKET_SOURCE_URL =
-  'https://www.cryptodatadownload.com/cdd/Bitstamp_ETHUSD_d.csv';
+const MARKET_SOURCE_URL = 'https://www.cryptodatadownload.com/cdd/Bitstamp_ETHUSD_d.csv';
 
 export async function fetchMarketDocument(
   fetchImpl: typeof fetch,

@@ -5,6 +5,5 @@
     "features/**/*.{ts,tsx}",
     "server/**/*.ts",
     "tests/**/*.ts"
-  ],
-  "ignore": ["next-env.d.ts"]
+  ]
 }

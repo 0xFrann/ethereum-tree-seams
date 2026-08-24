@@ -4,7 +4,7 @@ import { polarPoint, type Point } from './polar';
 
 type TimelineEvent = Milestone | Scar;
 
-export type EventAnchor = Point & {
+type EventAnchor = Point & {
   id: string;
   kind: 'milestone' | 'scar';
   radius: number;

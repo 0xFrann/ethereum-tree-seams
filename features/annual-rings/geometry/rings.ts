@@ -17,11 +17,7 @@ export function annualRingSamples(
   return year.months.map((month) => sampleMonth(center, month, baseline));
 }
 
-export function sampleMonth(
-  center: Point,
-  month: MonthRecord,
-  baseline: number,
-): RingSample {
+function sampleMonth(center: Point, month: MonthRecord, baseline: number): RingSample {
   const radius = baseline + month.priceShape * 10;
   return {
     ...polarPoint(center, radius, calendarAngle(month.month)),

@@ -19,3 +19,7 @@ cache; scheduled refreshes are performed by the protected refresh route.
 `npm run test:all` checks formatting, JavaScript and CSS linting, strict TypeScript,
 focused unit/integration contracts, and the production build. CI additionally runs
 Knip, the dependency audit, and Conventional Commit validation.
+
+The end-to-end suite always checks the dialog, keyboard, semantic controls, and responsive
+layout. Its pixel baselines are compared on macOS, where their browser-font rasterization is
+stable; Linux CI retains the functional accessibility coverage.

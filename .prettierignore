@@ -9,3 +9,4 @@ playwright-report
 test-results
 coverage
 .env.example
+next-env.d.ts

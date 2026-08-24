@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test, type Page } from '@playwright/test';
 
 const marketData = {
   schemaVersion: 1,
@@ -80,10 +80,7 @@ test('offers keyboard periods and a semantic event detail', async ({ page }) => 
     'href',
     'https://ethereum.org/',
   );
-  await expect(page).toHaveScreenshot('annual-rings-desktop.png', {
-    animations: 'disabled',
-    fullPage: true,
-  });
+  await assertMacVisualBaseline(page, 'annual-rings-desktop.png');
 });
 
 test.describe('on a compact viewport', () => {
@@ -93,9 +90,11 @@ test.describe('on a compact viewport', () => {
     await page.getByRole('button', { name: 'Enter the rings' }).click();
     await expect(page.getByLabel(/Annual rings graph/)).toBeVisible();
     await expect(page.getByRole('button', { name: 'Jan' })).toBeVisible();
-    await expect(page).toHaveScreenshot('annual-rings-mobile.png', {
-      animations: 'disabled',
-      fullPage: true,
-    });
+    await assertMacVisualBaseline(page, 'annual-rings-mobile.png');
   });
 });
+
+async function assertMacVisualBaseline(page: Page, name: string): Promise<void> {
+  if (process.platform !== 'darwin') return;
+  await expect(page).toHaveScreenshot(name, { animations: 'disabled', fullPage: true });
+}

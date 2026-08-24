@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.vite/
+.wrangler/
+dist/
+work/
+playwright-report/
+test-results/
+coverage/
+.env*
+!.env.example
+*.tsbuildinfo

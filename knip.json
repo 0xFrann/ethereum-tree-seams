@@ -1,0 +1,10 @@
+{
+  "entry": ["app/**/*.tsx", "app/**/*.ts", "scripts/**/*.ts"],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "features/**/*.{ts,tsx}",
+    "server/**/*.ts",
+    "tests/**/*.ts"
+  ],
+  "ignore": ["next-env.d.ts"]
+}

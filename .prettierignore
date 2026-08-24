@@ -1,0 +1,10 @@
+node_modules
+.next
+dist
+.vite
+.wrangler
+work
+package-lock.json
+playwright-report
+test-results
+coverage

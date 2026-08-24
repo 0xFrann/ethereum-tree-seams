@@ -20,6 +20,7 @@
     "test:all": "npm run format && npm run lint && npm run stylelint && npm run typecheck && npm run test && npm run build",
     "deadcode": "knip",
     "audit": "npm audit --audit-level=high",
+    "data:seed": "tsx scripts/seed-market-data.ts",
     "prepare": "simple-git-hooks"
   },
   "dependencies": {

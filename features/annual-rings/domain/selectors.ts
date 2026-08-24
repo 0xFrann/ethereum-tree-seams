@@ -1,4 +1,4 @@
-import type { EventSelection, MarketDocument, MonthSelection } from './types';
+import type { MarketDocument, MonthSelection } from './types';
 
 export const MONTH_NAMES = [
   'Jan',
@@ -28,17 +28,7 @@ export function selectedMonth(data: MarketDocument, selection: MonthSelection) {
     ?.months.find((month) => month.month === selection.month);
 }
 
-export function eventSelectionForDate(
-  data: MarketDocument,
-  date: string,
-): EventSelection {
-  const milestone = data.milestones.find((event) => event.date === date);
-  if (milestone) return { kind: 'milestone', id: milestone.id };
-  const scar = data.scars.find((event) => event.date === date);
-  return scar ? { kind: 'scar', id: scar.id } : null;
-}
-
-export function chronologicalMonths(data: MarketDocument): MonthSelection[] {
+function chronologicalMonths(data: MarketDocument): MonthSelection[] {
   return data.years.flatMap((year) =>
     year.months.map((month) => ({ year: year.year, month: month.month })),
   );

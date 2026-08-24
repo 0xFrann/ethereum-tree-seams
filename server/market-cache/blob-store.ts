@@ -1,7 +1,7 @@
 import { get, put } from '@vercel/blob';
 import type { CacheSnapshot, CacheWrite, MarketCache } from './types';
 
-export const MARKET_CACHE_PATH = 'market-data/latest.json';
+const MARKET_CACHE_PATH = 'market-data/latest.json';
 
 export const blobMarketCache: MarketCache = {
   async read(): Promise<CacheSnapshot | null> {

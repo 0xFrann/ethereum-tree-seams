@@ -2,7 +2,7 @@ import { assertIsoDate, dateFromUnixSeconds } from './dates';
 import type { DailyMarketRecord } from './types';
 
 const HEADER = 'unix,date,symbol,open,high,low,close,Volume ETH,Volume USD';
-export const MARKET_DATA_START = '2017-11-09';
+const MARKET_DATA_START = '2017-11-09';
 
 export function parseMarketCsv(text: string): DailyMarketRecord[] {
   const lines = text.trim().split(/\r?\n/);

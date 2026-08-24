@@ -31,8 +31,3 @@ export function dayOfYearProgress(date: string, includeDay: boolean): number {
   const length = (Date.UTC(year + 1, 0, 1) - start) / DAY_MS;
   return Math.min(1, Math.max(0, (elapsed + Number(includeDay)) / length));
 }
-
-export function monthFromDate(date: string): number {
-  assertIsoDate(date);
-  return Number(date.slice(5, 7)) - 1;
-}

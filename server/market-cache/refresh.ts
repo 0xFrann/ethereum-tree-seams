@@ -2,7 +2,7 @@ import { parseMarketDocument } from '@/server/market-data/document';
 import type { MarketDocument } from '@/features/annual-rings/domain/types';
 import type { MarketCache } from './types';
 
-export type RefreshResult =
+type RefreshResult =
   | { status: 'refreshed'; data: MarketDocument }
   | { status: 'skipped'; data: MarketDocument };
 
@@ -27,7 +27,7 @@ export async function refreshCachedMarketData(
   return { status: 'refreshed', data: candidate };
 }
 
-export function isFreshWithinHour(refreshedAt: string, now: Date): boolean {
+function isFreshWithinHour(refreshedAt: string, now: Date): boolean {
   const refreshed = Date.parse(refreshedAt);
   if (!Number.isFinite(refreshed)) return false;
   return Math.floor(refreshed / 3_600_000) === Math.floor(now.getTime() / 3_600_000);

@@ -10,6 +10,7 @@ const config = {
   ],
   rules: {
     'custom-property-empty-line-before': null,
+    'selector-pseudo-class-no-unknown': [true, { ignorePseudoClasses: ['global'] }],
     'value-keyword-case': null,
   },
 };

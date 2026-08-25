@@ -35,7 +35,7 @@ type LoadState =
   | { status: "loading" }
   | { status: "ready"; data: MarketData }
   | { status: "error"; message: string };
-type DetailsDialog = "period" | "events" | "data" | "method" | "key" | null;
+type DetailsDialog = "events" | "data" | "method" | "key" | null;
 type TimelineEvent =
   | { kind: "milestone"; record: Milestone }
   | { kind: "scar"; record: Scar };
@@ -59,12 +59,15 @@ function loadMarketData() {
   return marketDataRequest;
 }
 
-function StageTitle() {
+function StageTitle({ data }: { data?: MarketData }) {
   return (
     <header className="stage-title">
-      <p>Computational dendrochronology</p>
-      <h1>Ethereum Annual Rings</h1>
-      <span>ETH/USD · daily market archive</span>
+      <h1>ETH_TREE_01</h1>
+      {data ? <dl className="stage-provenance" aria-label="Specimen provenance">
+        <div><dt>Origin</dt><dd>{formatDate(data.chronology.origin)}</dd></div>
+        <div><dt>First market data</dt><dd>{formatDate(data.chronology.marketDataFrom)}</dd></div>
+        <div><dt>Updated</dt><dd>{formatTimestamp(data.cache.updatedAt)}</dd></div>
+      </dl> : null}
     </header>
   );
 }
@@ -224,14 +227,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     if (market) setSelection(market);
   }, [marketForEvent]);
   const restoreIdleSelection = useCallback(() => selectMarket(idleSelection, false), [idleSelection, selectMarket]);
-  const selectYear = useCallback((yearIndex: number) => {
-    const available = data.years[yearIndex].months.map((item) => item.month);
-    const nextMonth = available.includes(selection.month)
-      ? selection.month
-      : available.reduce((best, candidate) => Math.abs(candidate - selection.month) < Math.abs(best - selection.month) ? candidate : best, available[0]);
-    selectMarket({ yearIndex, month: nextMonth }, true);
-  }, [data.years, selectMarket, selection.month]);
-
   const paintSelection = useCallback(() => {
     const canvas = canvasRef.current;
     const geometry = geometryRef.current;
@@ -279,7 +274,11 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     const observer = new ResizeObserver(render);
     observer.observe(canvas);
     render();
-    return () => { observer.disconnect(); cancelAnimationFrame(frame); };
+    let disposed = false;
+    document.fonts?.ready.then(() => {
+      if (!disposed) render();
+    });
+    return () => { disposed = true; observer.disconnect(); cancelAnimationFrame(frame); };
   }, [data, paintSelection]);
   useEffect(paintSelection, [paintSelection, selection, eventSelection]);
 
@@ -312,28 +311,22 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     selectMarket(next, true);
   };
 
-  const currentOpen = year.year === data.years.at(-1)?.year && year.progress < 1;
-  const periodLabel = `${MONTHS[selection.month]} ${year.year}${currentOpen ? " · open" : ""}`;
+  const periodLabel = `${MONTHS[selection.month]} ${year.year}`;
   const hasDetailedPriceStats = Number.isFinite(month.averageClose) && Number.isFinite(month.low) && Number.isFinite(month.high);
   const priceLow = hasDetailedPriceStats ? month.low! : Math.min(month.open, month.close);
   const priceHigh = hasDetailedPriceStats ? month.high! : Math.max(month.open, month.close);
   const averagePrice = hasDetailedPriceStats ? month.averageClose! : (month.open + month.close) / 2;
   const volatilityPercent = ((priceHigh - priceLow) / averagePrice) * 100;
   const volatilityLabel = `${volatilityPercent.toFixed(1)}%`;
-  const priceSummary = `Observed price range ${priceUsd(priceLow)} to ${priceUsd(priceHigh)}. Range volatility is ${volatilityLabel} of the average price.`;
+  const priceSummary = `Average price ${priceUsd(averagePrice)}. Volatility ${volatilityLabel}.`;
 
   return (
     <section className="explorer explorer-stage" aria-label="Ethereum annual rings explorer">
-      <StageTitle />
-      <dl className="stage-provenance" aria-label="Specimen provenance">
-        <div><dt>Origin</dt><dd>{formatDate(data.chronology.origin)}</dd></div>
-        <div><dt>First market data</dt><dd>{formatDate(data.chronology.marketDataFrom)}</dd></div>
-        <div><dt>Updated</dt><dd>{formatTimestamp(data.cache.updatedAt)}</dd></div>
-      </dl>
-      <section className="stage-price" aria-label={`${periodLabel} price observations`}>
-        <button type="button" className="period-button" onClick={() => setDialog("period")} aria-haspopup="dialog"><span>Selected period</span><strong>{periodLabel}</strong><i aria-hidden="true">⌄</i></button>
-        <div className="price-movement" aria-label={priceSummary}><span>Observed price range</span><strong>{priceUsd(priceLow)}—{priceUsd(priceHigh)}</strong></div>
-        <dl className="price-observations"><div><dt>Range volatility</dt><dd>{volatilityLabel}</dd></div><div><dt>Average price</dt><dd>{priceUsd(averagePrice)}</dd></div></dl>
+      <StageTitle data={data} />
+      <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
+        <p className="period-date">{periodLabel}</p>
+        <p className="price-range">{priceUsd(priceLow)}—{priceUsd(priceHigh)}</p>
+        <dl className="price-observations"><div><dt>Average</dt><dd>{priceUsd(averagePrice)}</dd></div><div><dt>Volatility</dt><dd>{volatilityLabel}</dd></div></dl>
       </section>
       <div className="graph-stage">
         <canvas id="rings-explorer-entry" ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
@@ -347,14 +340,13 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         <div className="canvas-center" aria-hidden="true"><span>Origin</span><strong>{data.chronology.origin.replaceAll("-", "·")}</strong></div>
         <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot or scar for its note.</p>
       </div>
-      <aside id="rings-readout" className="selected-mark" aria-label="Selected knot or scar">
-        {selectedEvent ? <EventNote item={selectedEvent} /> : selectedMonthEvents.length ? <><p className="edge-label">Marks this month</p><div className="month-event-list">{selectedMonthEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => selectEvent({ kind: item.kind, id: item.record.id }, true)}>{item.record.name}</button>)}</div></> : <><p className="edge-label">Selected mark</p><p>No knots or scars in this month.</p></>}
+      <aside id="rings-readout" className="selected-mark" aria-label="Selected ring segment">
+        {selectedEvent ? <EventNote item={selectedEvent} /> : selectedMonthEvents.length ? <><p className="edge-label">Selected ring segment</p><div className="month-event-list">{selectedMonthEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => selectEvent({ kind: item.kind, id: item.record.id }, true)}>{item.record.name}</button>)}</div></> : <><p className="edge-label">Selected ring segment</p><p>No recorded events this month.</p></>}
       </aside>
       <nav className="stage-more" aria-label="More about this archive"><button type="button" onClick={() => setDialog("key")}>How to read</button><button type="button" onClick={() => setDialog("events")}>All marks</button><button type="button" onClick={() => setDialog("data")}>Data & source</button><button type="button" onClick={() => setDialog("method")}>Method</button></nav>
       <footer className="stage-credit">By <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">Fran Dalmasso ↗</a><span aria-hidden="true">·</span><a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer">Code ↗</a></footer>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announceSelection ? `${periodLabel} selected. ${priceSummary}${selectedEvent ? ` ${selectedEvent.kind === "milestone" ? "Milestone" : "Scar"}: ${selectedEvent.record.name}.` : ""}` : ""}</p>
-      {dialog === "period" ? <StageDialog title="Choose an observed period" onClose={() => setDialog(null)}><div className="dialog-selector"><p>Market year</p><div className="year-tabs" role="group" aria-label="Market year">{data.years.map((item, index) => <button key={item.year} type="button" className="year-button" aria-pressed={selection.yearIndex === index} onClick={() => selectYear(index)}>{item.year}</button>)}</div><p>Observed month</p><div className="month-tabs" role="group" aria-label="Observed month">{MONTHS.map((name, index) => { const available = year.months.some((item) => item.month === index); return <button key={name} type="button" className="month-button" disabled={!available} aria-pressed={selection.month === index} onClick={() => selectMarket({ ...selection, month: index }, true)}>{name}</button>; })}</div></div></StageDialog> : null}
-      {dialog === "events" ? <StageDialog title="Knots and scars" onClose={() => setDialog(null)}><div className="dialog-event-list">{timelineEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => { selectEvent({ kind: item.kind, id: item.record.id }, true); setDialog(null); }}><span>{item.kind === "milestone" ? "Knot · milestone" : "Scar"} · {formatDate(item.record.date)}</span><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></StageDialog> : null}
+      {dialog === "events" ? <StageDialog title="Knots and scars" onClose={() => setDialog(null)}><div className="dialog-event-list">{timelineEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => { selectEvent({ kind: item.kind, id: item.record.id }, true); setDialog(null); }}><span>{formatDate(item.record.date)}</span><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></StageDialog> : null}
       {dialog === "key" ? <StageDialog title="How to read the rings" onClose={() => setDialog(null)}><ul className="dialog-key"><li><i className="key-line" aria-hidden="true" />Ring shape — price</li><li><i className="key-weight" aria-hidden="true" />Ring weight — volume</li><li><i className="key-knot" aria-hidden="true" />Knots — protocol milestones</li><li><i className="key-scar" aria-hidden="true" />Scar size — reported incident magnitude</li></ul></StageDialog> : null}
       {dialog === "data" ? <StageDialog title="Data and source" onClose={() => setDialog(null)}><dl className="dialog-data"><div><dt>Market</dt><dd>{data.source.market}</dd></div><div><dt>Provider</dt><dd>{data.source.provider}</dd></div><div><dt>Source cutoff</dt><dd>{formatDate(data.source.cutoff)}</dd></div><div><dt>Observed days</dt><dd>{data.source.observedRows.toLocaleString("en-US")}</dd></div></dl><p>{data.methodology.caveat}</p><p>{data.source.gaps.length ? `${data.source.gaps.length} source day${data.source.gaps.length === 1 ? " is" : "s are"} missing; none are filled.` : "No missing source days detected."}</p><a href={data.source.url} target="_blank" rel="noreferrer">Open the Bitstamp source ↗</a></StageDialog> : null}
       {dialog === "method" ? <StageDialog title="How the rings are built" onClose={() => setDialog(null)}><div className="dialog-method"><p><b>Price shape</b>{data.methodology.price}</p><p><b>Ring weight</b>{data.methodology.volume}</p><p><b>Additive growth</b>Each year grows outside the last, preserving enough clearance for the grain to remain legible.</p></div></StageDialog> : null}
@@ -363,7 +355,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
 }
 
 function EventNote({ item }: { item: TimelineEvent }) {
-  return <><p className="edge-label">{item.kind === "milestone" ? "Knot · milestone" : "Scar"} · {formatDate(item.record.date)}</p><h2>{item.record.name}</h2><p>{item.record.summary}</p>{item.kind === "scar" ? <p className="event-detail-line">{item.record.affectedLayer}</p> : null}<a className="event-source" href={item.record.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Read the primary source for ${item.record.name}`}>↗</a></>;
+  return <><p className="edge-label">{formatDate(item.record.date)}</p><h2>{item.record.name}</h2><p>{item.record.summary}</p>{item.kind === "scar" ? <p className="event-detail-line">{item.record.affectedLayer}</p> : null}<a className="event-source" href={item.record.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Read the primary source for ${item.record.name}`}>↗</a></>;
 }
 
 function formatDate(value: string) {
@@ -371,5 +363,5 @@ function formatDate(value: string) {
 }
 
 function formatTimestamp(value: string) {
-  return new Intl.DateTimeFormat("en-US", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "UTC", timeZoneName: "short" }).format(new Date(value));
+  return new Intl.DateTimeFormat("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(value));
 }

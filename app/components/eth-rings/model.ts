@@ -82,7 +82,9 @@ export type MarketData = {
   scars: Scar[];
 };
 
-export type Selection = { yearIndex: number; month: number };
+// A segment is a calendar month, whether it is backed by a market contour or
+// solely by a chronology mark in the unpriced interval.
+export type Selection = { year: number; month: number };
 
 export type EventSelection =
   | { kind: "milestone"; id: string }

@@ -47,9 +47,9 @@ test("builds a no-scroll viewport stage with centered graph and six edge regions
 });
 
 test("uses price observations rather than returns", () => {
-  assert.match(explorer, /Observed price range/);
-  assert.match(explorer, /Range volatility/);
-  assert.match(explorer, /const volatilityPercent = \(\(priceHigh - priceLow\) \/ averagePrice\) \* 100/);
+  assert.match(explorer, /className="price-range"/);
+  assert.match(explorer, /Volatility/);
+  assert.match(explorer, /const volatilityPercent = averagePrice/);
   assert.match(explorer, /const volatilityLabel =/);
   assert.match(explorer, /Average price/);
   assert.match(explorer, /month\.averageClose/);
@@ -59,11 +59,12 @@ test("uses price observations rather than returns", () => {
   assert.doesNotMatch(explorer, /returnPct|Monthly return|Year return|signedPercent/);
 });
 
-test("makes one event selectable rather than flattening it into a monthly readout", () => {
+test("keeps semantic event selection while canvas marks inherit their month interaction", () => {
   assert.match(explorer, /const \[eventSelection, setEventSelection\]/);
   assert.match(explorer, /const marketForEvent/);
   assert.match(explorer, /const selectEvent/);
-  assert.match(explorer, /if \(next\.event\) selectEvent\(next\.event, true\)/);
+  assert.match(explorer, /if \(next\) selectMarket\(next, true\)/);
+  assert.doesNotMatch(explorer, /hitTestEvent\(geometry/);
   assert.match(explorer, /<EventNote item=\{selectedEvent\}/);
 });
 
@@ -71,11 +72,15 @@ test("puts the formerly scrolling content behind labelled accessible dialogs", (
   assert.match(explorer, /createPortal/);
   assert.match(explorer, /stage\?\.setAttribute\("inert", ""\)/);
   assert.match(explorer, /role="dialog" aria-modal="true"/);
-  assert.match(explorer, /Choose an observed period/);
-  assert.match(explorer, /Knots and scars/);
+  assert.match(explorer, /StageDialog title="Knots"/);
   assert.match(explorer, /Data and source/);
   assert.match(explorer, /How the rings are built/);
   assert.doesNotMatch(explorer, /className="event-index"|className="methodology"/);
+});
+
+test("keeps scars out of the visible and selectable explorer UI", () => {
+  assert.doesNotMatch(explorer, /data\.scars|Scar|scar/);
+  assert.doesNotMatch(globalStyles, /key-scar/);
 });
 
 test("keeps a compact responsive fallback for narrow or short viewports", () => {

@@ -2,20 +2,18 @@ import {
   buildEventAnchors,
   buildEventHitRegions,
   buildKnotGeometry,
-  buildScarGeometry,
   hitTestEvents,
   resolveEventCollisions,
   type EventHitRegion,
   type KnotGeometry,
-  type ScarGeometry,
   type YearBandGeometry,
 } from "./event-geometry";
 import { MONTHS, type EventSelection, type MarketData, type Selection } from "./model";
 
 const SAMPLE_COUNT = 360;
 const TAU = Math.PI * 2;
-const EMPTY_YEAR_GHOST_FRACTIONS = [0.1, 0.3, 0.5, 0.7, 0.9] as const;
-const EMPTY_TO_MARKET_GHOST_FRACTIONS = [0.2, 0.4, 0.6, 0.8] as const;
+const VOLUME_SAMPLES_PER_MONTH = 4;
+const PRE_MARKET_GHOST_COUNT = 14;
 const INTERSTITIAL_GHOST_FRACTIONS = [0.17, 0.34, 0.52, 0.7, 0.84] as const;
 const GHOST_ALPHA = 0.5;
 const EMPTY_GHOST_ALPHA_MIN = 0.2;
@@ -25,10 +23,10 @@ const EMPTY_GHOST_ALPHA_MAX = 0.48;
 const PRICE_RELIEF = 0.52;
 const MINIMUM_RING_WEIGHT = 0.65;
 const VOLUME_WIDTH_RANGE = 0.28;
-const VOLUME_TRANSITION_FRACTION = 0.22;
+const VOLUME_TRANSITION_FRACTION = 0.12;
 const VOLUME_YEAR_BASELINE_MIN = 0.08;
 const VOLUME_YEAR_BASELINE_RANGE = 0.78;
-const VOLUME_LOCAL_CONTRAST = 0.42;
+const VOLUME_LOCAL_CONTRAST = 0.7;
 
 type RingGeometry = {
   year: number;
@@ -40,7 +38,6 @@ type RingGeometry = {
 
 export type EventGeometry = {
   knots: KnotGeometry[];
-  scars: ScarGeometry[];
   fineHitRegions: EventHitRegion[];
   coarseHitRegions: EventHitRegion[];
 };
@@ -54,6 +51,7 @@ export type Geometry = {
   bark: number[];
   rings: RingGeometry[];
   yearBands: YearBandGeometry[];
+  selectableMonths: Selection[];
   events: EventGeometry;
 };
 
@@ -147,7 +145,7 @@ function drawBark(
 ) {
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = 0.3;
+  context.globalAlpha = 0.22;
   context.beginPath();
   outerBark.forEach((radius, sample) => {
     const point = polar(center, radius, sample);
@@ -162,6 +160,33 @@ function drawBark(
   }
   context.closePath();
   context.fill("evenodd");
+  context.restore();
+}
+
+function drawMonthTicks(
+  context: CanvasRenderingContext2D,
+  center: number,
+  indexRadius: number,
+  size: number,
+  color: string,
+) {
+  const tickInside = Math.max(2.5, size * 0.004);
+  const tickOutside = Math.max(4, size * 0.006);
+  context.save();
+  context.strokeStyle = color;
+  context.globalAlpha = 0.52;
+  context.lineWidth = Math.max(0.75, size * 0.001);
+  MONTHS.forEach((_, month) => {
+    for (let segment = 0; segment < VOLUME_SAMPLES_PER_MONTH; segment += 1) {
+      const sample = (month * VOLUME_SAMPLES_PER_MONTH + segment) * (SAMPLE_COUNT / (MONTHS.length * VOLUME_SAMPLES_PER_MONTH));
+      const inner = polar(center, indexRadius - tickInside, sample);
+      const outer = polar(center, indexRadius + tickOutside, sample);
+      context.beginPath();
+      context.moveTo(inner.x, inner.y);
+      context.lineTo(outer.x, outer.y);
+      context.stroke();
+    }
+  });
   context.restore();
 }
 
@@ -363,7 +388,6 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
 
   const canonicalEvents = [
     ...data.milestones.map((record) => ({ kind: "milestone" as const, record })),
-    ...data.scars.map((record) => ({ kind: "scar" as const, record })),
   ];
   const anchors = resolveEventCollisions(
     buildEventAnchors(canonicalEvents, yearBands, { center, size, gap, lastDate: data.source.cutoff }),
@@ -374,19 +398,23 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
     const event = data.milestones.find((candidate) => candidate.id === anchor.eventId);
     return event ? [buildKnotGeometry(event, anchor, gap)] : [];
   });
-  const scars = anchors.flatMap((anchor) => {
-    if (anchor.kind !== "scar") return [];
-    const event = data.scars.find((candidate) => candidate.id === anchor.eventId);
-    return event ? [buildScarGeometry(event, anchor, { localGap: gap, barkRadii: bark })] : [];
-  });
   const events: EventGeometry = {
     knots,
-    scars,
-    fineHitRegions: buildEventHitRegions(knots, scars, "fine"),
-    coarseHitRegions: buildEventHitRegions(knots, scars, "coarse"),
+    fineHitRegions: buildEventHitRegions(knots, [], "fine"),
+    coarseHitRegions: buildEventHitRegions(knots, [], "coarse"),
   };
 
-  return { center, size, gap, inner, indexRadius, bark, rings, yearBands, events };
+  // A calendar segment is interactive only when it can reveal an observed
+  // market reading or one of the marks drawn on that segment. Marks extend
+  // the segment; they are never an independent pointer target.
+  const selectableMonths = [
+    ...data.years.flatMap((year) => year.months.map((month) => ({ year: year.year, month: month.month }))),
+    ...anchors.map((anchor) => ({ year: anchor.year, month: Number(anchor.date.slice(5, 7)) - 1 })),
+  ].filter((segment, index, all) => all.findIndex((candidate) =>
+    candidate.year === segment.year && candidate.month === segment.month,
+  ) === index);
+
+  return { center, size, gap, inner, indexRadius, bark, rings, yearBands, selectableMonths, events };
 }
 
 function fillVariableContour(
@@ -405,19 +433,7 @@ function fillVariableContour(
   context.save();
   context.fillStyle = color;
   context.globalAlpha *= alpha * 0.78;
-  context.beginPath();
-  for (let sample = start; sample <= end; sample += 1) {
-    const index = sample % SAMPLE_COUNT;
-    const point = polar(center, ring.radii[index] + (ring.widths[index] + widthBoost) / 2, sample);
-    if (sample === start) context.moveTo(point.x, point.y);
-    else context.lineTo(point.x, point.y);
-  }
-  for (let sample = end; sample >= start; sample -= 1) {
-    const index = sample % SAMPLE_COUNT;
-    const point = polar(center, ring.radii[index] - (ring.widths[index] + widthBoost) / 2, sample);
-    context.lineTo(point.x, point.y);
-  }
-  context.closePath();
+  traceVariableContour(context, ring, center, start, end, widthBoost);
   context.fill();
   if (start > 0 || end < SAMPLE_COUNT) {
     for (const sample of [start, end]) {
@@ -431,24 +447,38 @@ function fillVariableContour(
   context.restore();
 }
 
-function transparentVersion(color: string) {
-  const hex = color.trim().match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
-  if (!hex) return "rgba(238, 233, 217, 0)";
-  return `rgba(${Number.parseInt(hex[1], 16)}, ${Number.parseInt(hex[2], 16)}, ${Number.parseInt(hex[3], 16)}, 0)`;
+function traceVariableContour(
+  context: CanvasRenderingContext2D,
+  ring: RingGeometry,
+  center: number,
+  start: number,
+  end: number,
+  widthBoost = 0,
+) {
+  context.beginPath();
+  for (let sample = start; sample <= end; sample += 1) {
+    const index = sample % SAMPLE_COUNT;
+    const point = polar(center, ring.radii[index] + (ring.widths[index] + widthBoost) / 2, sample);
+    if (sample === start) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  }
+  for (let sample = end; sample >= start; sample -= 1) {
+    const index = sample % SAMPLE_COUNT;
+    const point = polar(center, ring.radii[index] - (ring.widths[index] + widthBoost) / 2, sample);
+    context.lineTo(point.x, point.y);
+  }
+  context.closePath();
 }
 
-function drawMonthWedge(
+function traceMonthWedge(
   context: CanvasRenderingContext2D,
-  inner: number[],
-  selected: number[],
-  outer: number[],
+  inner: readonly number[],
+  outer: readonly number[],
   month: number,
   center: number,
-  paperColor: string,
 ) {
   const start = month * 30;
   const end = start + 30;
-  context.save();
   context.beginPath();
   for (let sample = start; sample <= end; sample += 1) {
     const index = sample % SAMPLE_COUNT;
@@ -462,30 +492,23 @@ function drawMonthWedge(
     context.lineTo(point.x, point.y);
   }
   context.closePath();
+}
 
-  const averageRadius = (radii: number[]) => {
-    let total = 0;
-    for (let sample = start; sample <= end; sample += 1) {
-      total += radii[sample % SAMPLE_COUNT];
-    }
-    return total / (end - start + 1);
-  };
-  const innerRadius = averageRadius(inner);
-  const selectedRadius = averageRadius(selected);
-  const outerRadius = averageRadius(outer);
-  const selectedStop = Math.max(
-    0.05,
-    Math.min(0.95, (selectedRadius - innerRadius) / Math.max(1, outerRadius - innerRadius)),
-  );
-  const gradient = context.createRadialGradient(center, center, innerRadius, center, center, outerRadius);
-  const transparentPaperColor = transparentVersion(paperColor);
-  gradient.addColorStop(0, transparentPaperColor);
-  gradient.addColorStop(selectedStop, paperColor);
-  gradient.addColorStop(1, transparentPaperColor);
-
-  context.fillStyle = gradient;
-  context.globalAlpha = 0.72;
-  context.fill();
+function strokeMonthWedge(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  selection: Selection,
+  color: string,
+) {
+  const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
+  if (!band) return;
+  const innerBoundary = geometry.yearBands[0]?.innerBoundary ?? band.innerBoundary;
+  context.save();
+  traceMonthWedge(context, innerBoundary, geometry.bark, selection.month, geometry.center);
+  context.strokeStyle = color;
+  context.globalAlpha = 0.3;
+  context.lineWidth = Math.max(0.8, geometry.size * 0.0012);
+  context.stroke();
   context.restore();
 }
 
@@ -502,19 +525,6 @@ function tracePointPath(
   if (close) context.closePath();
 }
 
-function drawScar(
-  context: CanvasRenderingContext2D,
-  scar: ScarGeometry,
-  color: string,
-) {
-  context.save();
-  context.fillStyle = color;
-  context.globalAlpha = 0.58;
-  tracePointPath(context, scar.polygon, true);
-  context.fill();
-  context.restore();
-}
-
 function drawKnot(
   context: CanvasRenderingContext2D,
   knot: KnotGeometry,
@@ -522,7 +532,7 @@ function drawKnot(
 ) {
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = 0.58;
+  context.globalAlpha = 1;
   tracePointPath(context, knot.path, true);
   context.fill();
   context.restore();
@@ -532,44 +542,27 @@ export function drawStaticArtwork(
   context: CanvasRenderingContext2D,
   data: MarketData,
   geometry: Geometry,
-  colors: { ink: string; grain: string; muted: string; bark: string },
+  colors: { ink: string; grain: string; muted: string; mark: string; bark: string },
 ) {
   const { center, rings, gap, inner, size, bark, indexRadius } = geometry;
   context.clearRect(0, 0, size, size);
   drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
 
   const emptyYearBands = geometry.yearBands.filter((band) => band.marketYearIndex === null);
-  const emptyGhostInnerRadius = emptyYearBands[0]?.innerBoundary[0] ?? inner;
-  const emptyGhostAlphaAt = (radius: number) => {
-    const progress = Math.max(0, Math.min(1, (radius - emptyGhostInnerRadius) / Math.max(1, inner - emptyGhostInnerRadius)));
-    return EMPTY_GHOST_ALPHA_MIN + (EMPTY_GHOST_ALPHA_MAX - EMPTY_GHOST_ALPHA_MIN) * progress;
+  const preMarketStart = emptyYearBands[0]?.innerBoundary ?? Array(SAMPLE_COUNT).fill(inner * 0.16);
+  const emptyGhostAlphaAt = (progress: number) => {
+    const clamped = Math.max(0, Math.min(1, progress));
+    return EMPTY_GHOST_ALPHA_MIN + (EMPTY_GHOST_ALPHA_MAX - EMPTY_GHOST_ALPHA_MIN) * clamped;
   };
-  emptyYearBands.forEach((band) => {
-    EMPTY_YEAR_GHOST_FRACTIONS.forEach((fraction) => {
-      const radii = band.innerBoundary.map((innerRadius, sample) =>
-        innerRadius + (band.outerBoundary[sample] - innerRadius) * fraction);
-      strokeGhostContour(
-        context,
-        radii,
-        center,
-        colors.grain,
-        0,
-        SAMPLE_COUNT,
-        true,
-        emptyGhostAlphaAt(radii[0]),
-      );
-    });
-  });
-
-  const lastEmptyBand = emptyYearBands.at(-1);
   const firstMarketRing = rings[0];
-  if (lastEmptyBand && firstMarketRing) {
-    EMPTY_TO_MARKET_GHOST_FRACTIONS.forEach((fraction) => {
-      // These bridge nodes share the same sample-by-sample interpolation as
-      // the year bands, keeping the final ghost interval evenly spaced rather
-      // than leaving a circular gap beside the first data contour.
-      const radii = lastEmptyBand.outerBoundary.map((radius, sample) =>
-        radius + (firstMarketRing.radii[sample] - radius) * fraction);
+  if (emptyYearBands.length && firstMarketRing) {
+    Array.from({ length: PRE_MARKET_GHOST_COUNT }, (_, index) => (index + 1) / (PRE_MARKET_GHOST_COUNT + 1)).forEach((progress) => {
+      // Treat the unpriced years and 2017's missing arc as one transition:
+      // every ghost contour interpolates directly from the central circle to
+      // the first observed market outline. This avoids a compressed cluster
+      // beside the partial 2017 ring.
+      const radii = preMarketStart.map((startRadius, sample) =>
+        startRadius + (firstMarketRing.radii[sample] - startRadius) * progress);
       strokeGhostContour(
         context,
         radii,
@@ -578,7 +571,7 @@ export function drawStaticArtwork(
         0,
         SAMPLE_COUNT,
         true,
-        emptyGhostAlphaAt(radii[0]),
+        emptyGhostAlphaAt(progress),
       );
     });
   }
@@ -619,9 +612,8 @@ export function drawStaticArtwork(
     fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.82);
   });
 
-  geometry.events.scars.forEach((scar) => drawScar(context, scar, colors.muted));
-  geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.muted));
-  [...geometry.events.scars.map((scar) => scar.anchor), ...geometry.events.knots.map((knot) => knot.anchor)]
+  geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.mark));
+  geometry.events.knots.map((knot) => knot.anchor)
     .forEach((anchor) => {
       if (!anchor.leader) return;
       context.save();
@@ -640,6 +632,7 @@ export function drawStaticArtwork(
   context.arc(center, center, indexRadius, 0, TAU);
   context.stroke();
   context.globalAlpha = 1;
+  drawMonthTicks(context, center, indexRadius, size, colors.muted);
 
   const labelFontSize = Math.max(9, size * 0.018);
   const labelClearance = Math.max(5, size * 0.012);
@@ -668,28 +661,52 @@ export function drawSelection(
   geometry: Geometry,
   selection: Selection,
   color: string,
-  paperColor: string,
+  source: CanvasImageSource,
 ) {
-  const ring = geometry.rings[selection.yearIndex];
-  if (!ring) return;
+  const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
+  if (!band) return;
   const monthStart = selection.month * 30;
-  if (monthStart + 30 <= ring.startSample || monthStart >= ring.activeSamples) return;
-  const actualEnd = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
-  const start = Math.max(monthStart, ring.startSample);
+  const startSample = Math.floor(band.startFraction * SAMPLE_COUNT);
+  const activeSamples = Math.ceil(band.activeFraction * SAMPLE_COUNT);
+  if (monthStart + 30 <= startSample || monthStart >= activeSamples) return;
+  const actualEnd = activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : activeSamples - 1;
+  const start = Math.max(monthStart, startSample);
   const end = Math.min(monthStart + 30, actualEnd);
 
-  drawMonthWedge(
-    context,
-    geometry.rings[0].radii,
-    ring.radii,
-    geometry.bark,
-    selection.month,
-    geometry.center,
-    paperColor,
-  );
-
   if (end - start < 2) return;
-  fillVariableContour(context, ring, geometry.center, color, start, end, 1, 0.35);
+  const selectedRing = {
+    year: band.year,
+    radii: [...band.radii],
+    widths: [...band.widths],
+    startSample,
+    activeSamples,
+  };
+  // The entire specimen is faded by the caller. Restore precisely the active
+  // segment rather than filling its month wedge, so it alone returns to the
+  // normal drawing contrast.
+  context.save();
+  traceVariableContour(context, selectedRing, geometry.center, start, end);
+  context.clip();
+  context.drawImage(source, 0, 0, geometry.size, geometry.size);
+  context.restore();
+  strokeMonthWedge(context, geometry, selection, color);
+
+  // Marks inherit their host segment's hover state. This keeps the visual
+  // hierarchy coherent without giving knots an independent pointer behavior.
+  const selectedMonth = selection.month + 1;
+  context.save();
+  context.fillStyle = color;
+  context.globalAlpha = 1;
+  geometry.events.knots
+    .filter((knot) => knot.anchor.year === selection.year && Number(knot.anchor.date.slice(5, 7)) === selectedMonth)
+    .forEach((knot) => {
+      context.save();
+      tracePointPath(context, knot.path, true);
+      context.clip();
+      context.drawImage(source, 0, 0, geometry.size, geometry.size);
+      context.restore();
+    });
+  context.restore();
 
   const labelFontSize = Math.max(9, geometry.size * 0.018);
   const labelClearance = Math.max(5, geometry.size * 0.012);
@@ -722,17 +739,11 @@ export function drawEventSelection(
   const knot = selection.kind === "milestone"
     ? geometry.events.knots.find((candidate) => candidate.eventId === selection.id)
     : undefined;
-  const scar = selection.kind === "scar"
-    ? geometry.events.scars.find((candidate) => candidate.eventId === selection.id)
-    : undefined;
   context.save();
   context.fillStyle = color;
   context.globalAlpha = 1;
   if (knot) {
     tracePointPath(context, knot.path, true);
-    context.fill();
-  } else if (scar) {
-    tracePointPath(context, scar.polygon, true);
     context.fill();
   }
   context.restore();
@@ -756,28 +767,30 @@ export function hitTestInteractive(
   y: number,
   pointer: "fine" | "coarse" = "fine",
 ): Readonly<{ event: EventSelection; market: Selection | null }> {
-  const event = hitTestEvent(geometry, x, y, pointer);
-  return event ? { event, market: null } : { event: null, market: hitTest(geometry, x, y) };
+  void pointer;
+  return { event: null, market: hitTest(geometry, x, y) };
 }
 
 export function hitTest(geometry: Geometry, x: number, y: number): Selection | null {
   const dx = x - geometry.center;
   const dy = y - geometry.center;
   const radius = Math.hypot(dx, dy);
-  if (radius < geometry.inner - geometry.gap || radius > geometry.indexRadius) return null;
+  const minimumRadius = Math.min(...geometry.yearBands.flatMap((band) => band.innerBoundary));
+  if (radius < minimumRadius || radius > geometry.indexRadius) return null;
 
   const angle = (Math.atan2(dy, dx) + Math.PI / 2 + TAU) % TAU;
   const month = Math.min(11, Math.floor((angle / TAU) * 12));
   const sample = Math.floor((angle / TAU) * SAMPLE_COUNT) % SAMPLE_COUNT;
-  let yearIndex = -1;
+  let year: number | null = null;
   let distance = Number.POSITIVE_INFINITY;
-  geometry.rings.forEach((ring, index) => {
-    if (sample < ring.startSample || sample >= ring.activeSamples) return;
-    const nextDistance = Math.abs(radius - ring.radii[sample]);
+  geometry.yearBands.forEach((band) => {
+    const selectable = geometry.selectableMonths.some((segment) => segment.year === band.year && segment.month === month);
+    if (!selectable || sample < band.startFraction * SAMPLE_COUNT || sample >= band.activeFraction * SAMPLE_COUNT) return;
+    const nextDistance = Math.abs(radius - band.radii[sample]);
     if (nextDistance < distance) {
       distance = nextDistance;
-      yearIndex = index;
+      year = band.year;
     }
   });
-  return yearIndex === -1 ? null : { yearIndex, month };
+  return year === null ? null : { year, month };
 }

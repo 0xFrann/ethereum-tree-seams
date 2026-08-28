@@ -199,6 +199,9 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
         inert={blocked}
         tabIndex={-1}
       >
+        {children}
+        {/* Rendered last so the icon lands after the stage links in tab order; it is
+            positioned bottom-right regardless. */}
         <div className={styles.reopenControl}>
           <button
             type="button"
@@ -209,7 +212,6 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
             <span aria-hidden="true">i</span>
           </button>
         </div>
-        {children}
       </div>
 
       {mode === "checking-session" ? (

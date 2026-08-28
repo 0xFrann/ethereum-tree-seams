@@ -693,7 +693,7 @@ export function drawStaticArtwork(
   const labelFontSize = Math.max(9, size * 0.018);
   const labelClearance = Math.max(5, size * 0.012);
   context.fillStyle = colors.muted;
-  context.font = `400 ${labelFontSize}px "Cutive Mono", monospace`;
+  context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   MONTHS.forEach((month, index) => {
@@ -797,7 +797,7 @@ export function drawSelection(
   const label = MONTHS[selection.month].toUpperCase();
   context.save();
   context.fillStyle = color;
-  context.font = `400 ${labelFontSize}px "Cutive Mono", monospace`;
+  context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   const halfWidth = context.measureText(label).width / 2;

@@ -11,8 +11,9 @@
   --rule: #d5cec0;
   --rule-soft: #e5e0d3;
   --accent: #1e1b16;
-  --font-display: "Special Elite", "Courier New", monospace;
-  --font-interface: "Cutive Mono", "Courier New", monospace;
+  /* One typeface throughout: hierarchy comes from size, weight and tracking, not from a second face. */
+  --font-display: "Courier Prime", "Courier New", monospace;
+  --font-interface: "Courier Prime", "Courier New", monospace;
   --text-label: 12px;
   --text-body: 15px;
   --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
@@ -46,7 +47,8 @@ button { font: inherit; color: inherit; }
 .stage-title, .stage-price, .selected-mark, .stage-more, .stage-credit { position: absolute; z-index: 2; }
 .stage-title { top: max(2.4rem, env(safe-area-inset-top)); left: max(2.4rem, env(safe-area-inset-left)); max-width: 22rem; }
 .stage-title p, .stage-title span, .edge-label, .stage-provenance dt, .stage-price span, .price-observations dt, .stage-more button, .stage-credit { font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .06em; }
-.stage-title p { margin: 0 0 .55rem; color: var(--ink-faint); text-transform: uppercase; }
+/* Specimen-sheet convention: the topmost label carries the widest track on the page. */
+.stage-title p { margin: 0 0 .8rem; color: var(--ink-faint); font-size: 14px; letter-spacing: .52em; text-transform: uppercase; }
 .stage-title h1 { margin: 0; color: var(--ink-title); font: 400 clamp(1.9rem, 3.2vw, 3.4rem)/.95 var(--font-display); letter-spacing: .01em; }
 .stage-title span { display: block; margin-top: .8rem; }
 .stage-provenance { display: grid; gap: .55rem; margin: 1.6rem 0 0; }
@@ -55,7 +57,7 @@ button { font: inherit; color: inherit; }
 .stage-provenance dd { margin: 0; font: 400 15px/1.2 var(--font-interface); letter-spacing: .01em; }
 .stage-price { top: max(2.4rem, env(safe-area-inset-top)); right: max(2.4rem, env(safe-area-inset-right)); width: min(18rem, 25vw); text-align: right; }
 .period-date { margin: 0; color: var(--ink); font: 400 clamp(1.5rem, 2.2vw, 2.2rem)/1.05 var(--font-interface); letter-spacing: .01em; }
-.price-range { margin: .45rem 0 0; color: var(--ink-soft); font: 400 15px/1.3 var(--font-interface); font-variant-numeric: tabular-nums; }
+.price-range { margin: .45rem 0 0; color: var(--ink-soft); font: 400 19px/1.3 var(--font-interface); font-variant-numeric: tabular-nums; }
 .period-button { display: grid; width: 100%; padding: 0 0 .65rem; border: 0; background: transparent; cursor: pointer; text-align: inherit; }
 .period-button strong { margin-top: .3rem; font: 400 clamp(1.3rem, 2vw, 2rem)/1 var(--font-interface); }
 .period-button i { position: absolute; right: 0; bottom: .65rem; font-style: normal; }
@@ -68,7 +70,10 @@ button { font: inherit; color: inherit; }
 
 .graph-stage { position: absolute; top: 50%; left: 50%; width: clamp(760px, 68vmin, 920px); transform: translate(-50%, -50%); }
 .rings-canvas { --ring-ink: #4a4235; --ring-grain: #57503f; --ring-muted: #6b6454; --ring-mark: #585044; --ring-accent: #1e1b16; --ring-event-accent: #17130d; --ring-bark: #857c6b; display: block; width: 100%; aspect-ratio: 1; cursor: crosshair; touch-action: manipulation; }
-.rings-canvas:focus-visible, button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
+/* The plate is a disc, so the focus ring follows the rings rather than the canvas box.
+   Every mark the renderer draws sits well inside the inscribed circle, so the clip shows nothing. */
+.rings-canvas:focus-visible { border-radius: 50%; outline: 1px solid var(--accent); outline-offset: 4px; }
 .selected-mark { bottom: max(2.4rem, env(safe-area-inset-bottom)); left: max(2.4rem, env(safe-area-inset-left)); width: min(21rem, 27vw); }
 .selected-mark p { margin: .5rem 0 0; color: var(--ink-soft); font: 14px/1.5 var(--font-interface); }
 .selected-mark h2 { margin: .45rem 2.3rem 0 0; color: var(--ink); font: 400 clamp(1.25rem, 1.7vw, 1.6rem)/1.15 var(--font-interface); }
@@ -134,6 +139,6 @@ button { font: inherit; color: inherit; }
 @media (max-width: 1000px) { .stage-credit { right: calc(max(2.4rem, env(safe-area-inset-right)) + 3.2rem); bottom: max(2.4rem, env(safe-area-inset-bottom)); left: auto; transform: none; } .selected-mark { bottom: max(4.6rem, calc(env(safe-area-inset-bottom) + 3.4rem)); } .stage-more { bottom: max(8.25rem, calc(env(safe-area-inset-bottom) + 7.25rem)); } }
 @media (min-width: 720px) and (max-height: 799px) { .graph-stage { width: min(760px, calc(100dvh - 2rem)); } }
 @media (max-width: 719px), (max-height: 620px) { .explorer-stage { min-height: 30rem; }
-.explorer-stage::before { inset: max(.7rem, env(safe-area-inset-top)) max(.7rem, env(safe-area-inset-right)) max(.7rem, env(safe-area-inset-bottom)) max(.7rem, env(safe-area-inset-left)); } .stage-title { top: max(1.9rem, env(safe-area-inset-top)); left: max(1.9rem, env(safe-area-inset-left)); max-width: 20rem; } .stage-title p, .stage-title span { font-size: 11px; } .stage-title h1 { padding-bottom: .5rem; font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance { gap: .45rem; margin-top: .8rem; } .stage-provenance div { gap: .1rem; } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { top: max(1.9rem, env(safe-area-inset-top)); right: max(1.9rem, env(safe-area-inset-right)); width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 13px; } .price-observations { gap: .65rem; margin-top: 1.2rem; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { bottom: max(4.1rem, calc(env(safe-area-inset-bottom) + 3rem)); left: max(1.9rem, env(safe-area-inset-left)); width: min(13rem, 48vw); padding-top: .5rem; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { top: .4rem; width: 1.7rem; height: 1.7rem; } .stage-more { right: max(1.9rem, env(safe-area-inset-right)); bottom: max(4rem, calc(env(safe-area-inset-bottom) + 3rem)); gap: .1rem; } .stage-more button, .stage-credit { font-size: 11px; } .stage-credit { right: calc(max(1.9rem, env(safe-area-inset-right)) + 3.1rem); bottom: max(1.6rem, env(safe-area-inset-bottom)); } .year-tabs { grid-template-columns: repeat(4, 1fr); } .month-tabs { grid-template-columns: repeat(4, 1fr); } }
+.explorer-stage::before { inset: max(.7rem, env(safe-area-inset-top)) max(.7rem, env(safe-area-inset-right)) max(.7rem, env(safe-area-inset-bottom)) max(.7rem, env(safe-area-inset-left)); } .stage-title { top: max(1.9rem, env(safe-area-inset-top)); left: max(1.9rem, env(safe-area-inset-left)); max-width: 20rem; } .stage-title p { font-size: 12px; } .stage-title span { font-size: 11px; } .stage-title h1 { padding-bottom: .5rem; font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance { gap: .45rem; margin-top: .8rem; } .stage-provenance div { gap: .1rem; } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { top: max(1.9rem, env(safe-area-inset-top)); right: max(1.9rem, env(safe-area-inset-right)); width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 15px; } .price-observations { gap: .65rem; margin-top: 1.2rem; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { bottom: max(4.1rem, calc(env(safe-area-inset-bottom) + 3rem)); left: max(1.9rem, env(safe-area-inset-left)); width: min(13rem, 48vw); padding-top: .5rem; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { top: .4rem; width: 1.7rem; height: 1.7rem; } .stage-more { right: max(1.9rem, env(safe-area-inset-right)); bottom: max(4rem, calc(env(safe-area-inset-bottom) + 3rem)); gap: .1rem; } .stage-more button, .stage-credit { font-size: 11px; } .stage-credit { right: calc(max(1.9rem, env(safe-area-inset-right)) + 3.1rem); bottom: max(1.6rem, env(safe-area-inset-bottom)); } .year-tabs { grid-template-columns: repeat(4, 1fr); } .month-tabs { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 390px), (max-height: 500px) { .stage-title span, .price-observations, .selected-mark .edge-label, .event-detail-line { display: none; } .selected-mark { width: 11rem; padding-top: 0; border-top: 0; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

@@ -98,13 +98,13 @@ test("highlights knots with a dark fill instead of an outline", async () => {
   assert.doesNotMatch(selection, /strokeStyle|lineWidth|context\.stroke\(\)|context\.arc\(/);
 });
 
-test("gives marks the same contrast as their selected month segment", async () => {
+test("keeps knots in the same neutral ink as their selected month segment", async () => {
   const source = await readFile(rendererUrl, "utf8");
   const selection = source.slice(source.indexOf("export function drawSelection"), source.indexOf("export function drawEventSelection"));
 
-  assert.match(selection, /Marks inherit their host segment's hover state/);
+  assert.match(selection, /without giving it a separate accent/);
   assert.match(selection, /knot\.anchor\.year === selection\.year/);
-  assert.match(selection, /context\.fillStyle = color/);
+  assert.match(selection, /context\.drawImage\(source, 0, 0, geometry\.size, geometry\.size\)/);
 });
 
 test("renders knots with a solid neutral treatment", async () => {

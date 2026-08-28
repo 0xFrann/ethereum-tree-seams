@@ -160,6 +160,36 @@ function drawBark(
   }
   context.closePath();
   context.fill("evenodd");
+
+  // Bark has to read as a material, not as a drop shadow. A cambium hairline
+  // separates it from the last completed year, and deterministic radial
+  // fissures give the band tooth at every size.
+  context.strokeStyle = color;
+  context.globalAlpha = 0.55;
+  context.lineWidth = 0.9;
+  traceContour(context, innerBark, center, 0, SAMPLE_COUNT, true);
+  context.stroke();
+  context.globalAlpha = 0.4;
+  context.lineWidth = 0.8;
+  traceContour(context, outerBark, center, 0, SAMPLE_COUNT, true);
+  context.stroke();
+  for (let sample = 0; sample < SAMPLE_COUNT; sample += 2) {
+    const band = outerBark[sample] - innerBark[sample];
+    if (band <= 0) continue;
+    const noise = Math.sin(sample * 12.9898) * 43758.5453;
+    const jitter = noise - Math.floor(noise);
+    const start = innerBark[sample] + band * (0.08 + jitter * 0.3);
+    const end = Math.min(start + band * (0.18 + jitter * 0.58), outerBark[sample] - band * 0.06);
+    if (end <= start) continue;
+    context.globalAlpha = 0.14 + jitter * 0.28;
+    context.lineWidth = 0.55 + jitter * 0.5;
+    const from = polar(center, start, sample);
+    const to = polar(center, end, sample);
+    context.beginPath();
+    context.moveTo(from.x, from.y);
+    context.lineTo(to.x, to.y);
+    context.stroke();
+  }
   context.restore();
 }
 
@@ -506,8 +536,8 @@ function strokeMonthWedge(
   context.save();
   traceMonthWedge(context, innerBoundary, geometry.bark, selection.month, geometry.center);
   context.strokeStyle = color;
-  context.globalAlpha = 0.3;
-  context.lineWidth = Math.max(0.8, geometry.size * 0.0012);
+  context.globalAlpha = 0.22;
+  context.lineWidth = Math.max(0.9, geometry.size * 0.0013);
   context.stroke();
   context.restore();
 }
@@ -517,12 +547,38 @@ function tracePointPath(
   points: readonly { x: number; y: number }[],
   close: boolean,
 ) {
+  if (!points.length) return;
+  // Leaders are drawn lines and stay straight. A closed path is a knot, and a
+  // knot in wood has no corners: run a smooth loop through the same control
+  // points instead of stroking the polygon between them.
+  if (!close || points.length < 3) {
+    context.beginPath();
+    points.forEach((point, index) => {
+      if (index === 0) context.moveTo(point.x, point.y);
+      else context.lineTo(point.x, point.y);
+    });
+    if (close) context.closePath();
+    return;
+  }
+  const count = points.length;
+  const at = (index: number) => points[((index % count) + count) % count];
   context.beginPath();
-  points.forEach((point, index) => {
-    if (index === 0) context.moveTo(point.x, point.y);
-    else context.lineTo(point.x, point.y);
-  });
-  if (close) context.closePath();
+  context.moveTo(at(0).x, at(0).y);
+  for (let index = 0; index < count; index += 1) {
+    const previous = at(index - 1);
+    const from = at(index);
+    const to = at(index + 1);
+    const next = at(index + 2);
+    context.bezierCurveTo(
+      from.x + (to.x - previous.x) / 6,
+      from.y + (to.y - previous.y) / 6,
+      to.x - (next.x - from.x) / 6,
+      to.y - (next.y - from.y) / 6,
+      to.x,
+      to.y,
+    );
+  }
+  context.closePath();
 }
 
 function drawKnot(
@@ -627,7 +683,7 @@ export function drawStaticArtwork(
 
   context.strokeStyle = colors.muted;
   context.lineWidth = 1;
-  context.globalAlpha = 1;
+  context.globalAlpha = 0.45;
   context.beginPath();
   context.arc(center, center, indexRadius, 0, TAU);
   context.stroke();
@@ -662,6 +718,7 @@ export function drawSelection(
   selection: Selection,
   color: string,
   source: CanvasImageSource,
+  paper: string,
 ) {
   const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
   if (!band) return;
@@ -674,6 +731,18 @@ export function drawSelection(
   const end = Math.min(monthStart + 30, actualEnd);
 
   if (end - start < 2) return;
+
+  const wedgeInner = geometry.yearBands[0]?.innerBoundary;
+  if (wedgeInner) {
+    context.save();
+    traceMonthWedge(context, wedgeInner, geometry.bark, selection.month, geometry.center);
+    context.clip();
+    context.fillStyle = paper;
+    context.globalAlpha = 0.2;
+    context.fillRect(0, 0, geometry.size, geometry.size);
+    context.restore();
+  }
+
   const selectedRing = {
     year: band.year,
     radii: [...band.radii],
@@ -688,21 +757,35 @@ export function drawSelection(
   traceVariableContour(context, selectedRing, geometry.center, start, end);
   context.clip();
   context.drawImage(source, 0, 0, geometry.size, geometry.size);
+  context.globalAlpha = 0.55;
+  context.drawImage(source, 0, 0, geometry.size, geometry.size);
   context.restore();
   strokeMonthWedge(context, geometry, selection, color);
 
-  // Marks inherit their host segment's hover state. This keeps the visual
-  // hierarchy coherent without giving knots an independent pointer behavior.
+  // The reading is taken at the perimeter, where the month labels are, so the
+  // index ring carries a solid accent arc across the selected month.
+  const wedgeStart = -Math.PI / 2 + (selection.month / 12) * TAU;
+  context.save();
+  context.strokeStyle = color;
+  context.globalAlpha = 1;
+  context.lineWidth = Math.max(1.4, geometry.size * 0.0022);
+  context.beginPath();
+  context.arc(geometry.center, geometry.center, geometry.indexRadius, wedgeStart, wedgeStart + TAU / 12);
+  context.stroke();
+  context.restore();
+
+  // Restore a knot at normal ink contrast without giving it a separate accent:
+  // a selected segment remains the only colored element.
   const selectedMonth = selection.month + 1;
   context.save();
-  context.fillStyle = color;
-  context.globalAlpha = 1;
   geometry.events.knots
     .filter((knot) => knot.anchor.year === selection.year && Number(knot.anchor.date.slice(5, 7)) === selectedMonth)
     .forEach((knot) => {
       context.save();
       tracePointPath(context, knot.path, true);
       context.clip();
+      context.drawImage(source, 0, 0, geometry.size, geometry.size);
+      context.globalAlpha = 0.55;
       context.drawImage(source, 0, 0, geometry.size, geometry.size);
       context.restore();
     });

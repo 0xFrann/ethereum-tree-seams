@@ -222,7 +222,7 @@ export function resolveEventCollisions(
       .map((offset) => anchorWithDisplayAngle(anchor, anchor.trueAngle + offset));
     const sameYear = placed.filter((candidate) => candidate.year === anchor.year);
     const visualRadius = (candidate: EventAnchor) =>
-      candidate.kind === "milestone" ? 10 + metrics.selectionHaloPx : 11 + metrics.selectionHaloPx;
+      candidate.kind === "milestone" ? 14 + metrics.selectionHaloPx : 11 + metrics.selectionHaloPx;
     const clears = (candidate: EventAnchor) => sameYear.every((other) => {
       const distance = Math.hypot(candidate.point.x - other.point.x, candidate.point.y - other.point.y);
       return distance >= visualRadius(candidate) + visualRadius(other) + 3;
@@ -247,8 +247,8 @@ export function buildKnotGeometry(
   anchor: EventAnchor,
   localGap: number,
 ): KnotGeometry {
-  const majorRadius = clamp(localGap * 0.29, 5, 9);
-  const minorRadius = clamp(localGap * 0.17, 3, 5.5);
+  const majorRadius = clamp(localGap * 0.42, 7, 12);
+  const minorRadius = clamp(localGap * 0.25, 4.5, 7.5);
   const rotation = anchor.displayAngle + Math.PI / 2 + hashSigned(event.id) * 0.2;
   const offset = hashSigned(`${event.id}:offset`) * Math.min(localGap * 0.055, 1.25);
   const center = pointAt(

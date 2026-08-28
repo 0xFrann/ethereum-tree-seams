@@ -141,7 +141,7 @@ test("knot geometry is deterministic, asymmetric, and remains on its host grain"
   const second = buildKnotGeometry(event, anchor, 18);
   assert.deepEqual(first, second);
   assert.equal(first.path.length, 8);
-  assert.ok(first.majorRadius >= 5 && first.majorRadius <= 9);
+  assert.ok(first.majorRadius >= 7 && first.majorRadius <= 12);
   const centerRadius = Math.hypot(first.center.x - anchor.center, first.center.y - anchor.center);
   assert.ok(Math.abs(centerRadius - anchor.ringRadius) <= 1.25);
 });

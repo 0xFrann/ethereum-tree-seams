@@ -56,6 +56,7 @@ function loadMarketData() {
 function StageTitle({ data }: { data?: MarketData }) {
   return (
     <header className="stage-title">
+      <p>Specimen</p>
       <h1>ETH_TREE_01</h1>
       {data ? <dl className="stage-provenance" aria-label="Specimen provenance">
         <div><dt>Origin</dt><dd>{formatDate(data.chronology.origin)}</dd></div>
@@ -227,13 +228,16 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     context.clearRect(0, 0, geometry.size, geometry.size);
     context.drawImage(cache, 0, 0, geometry.size, geometry.size);
     const styles = getComputedStyle(canvas);
+    const paper = styles.getPropertyValue("--paper").trim();
     context.save();
-    context.fillStyle = styles.getPropertyValue("--paper").trim();
+    context.fillStyle = paper;
     context.globalAlpha = 0.3;
     context.fillRect(0, 0, geometry.size, geometry.size);
     context.restore();
-    drawSelection(context, data, geometry, selectionRef.current, styles.getPropertyValue("--ring-accent").trim(), cache);
-    if (eventSelectionRef.current) drawEventSelection(context, geometry, eventSelectionRef.current, styles.getPropertyValue("--ring-event-accent").trim());
+    const ringAccent = styles.getPropertyValue("--ring-accent").trim();
+    const ringInk = styles.getPropertyValue("--ring-ink").trim();
+    drawSelection(context, data, geometry, selectionRef.current, ringAccent, cache, paper);
+    if (eventSelectionRef.current) drawEventSelection(context, geometry, eventSelectionRef.current, ringInk);
   }, [data]);
 
   useEffect(() => {
@@ -336,7 +340,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot for its note.</p>
       </div>
       <aside id="rings-readout" className="selected-mark" aria-label="Selected ring segment">
-        {selectedEvent ? <EventNote item={selectedEvent} /> : selectedMonthEvents.length ? <><p className="edge-label">Selected ring segment</p><div className="month-event-list">{selectedMonthEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => selectEvent({ kind: item.kind, id: item.record.id }, true)}>{item.record.name}</button>)}</div></> : <><p className="edge-label">Selected ring segment</p><p>No recorded events this month.</p></>}
+        {selectedEvent ? <EventNote item={selectedEvent} /> : selectedMonthEvents.length ? <><p className="edge-label">Selected ring segment</p><div className="month-event-list">{selectedMonthEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => selectEvent({ kind: item.kind, id: item.record.id }, true)}><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></> : <><p className="edge-label">Selected ring segment</p><p>No recorded events this month.</p></>}
       </aside>
       <nav className="stage-more" aria-label="More about this archive"><button type="button" onClick={() => setDialog("key")}>How to read</button><button type="button" onClick={() => setDialog("events")}>All marks</button><button type="button" onClick={() => setDialog("data")}>Data & source</button><button type="button" onClick={() => setDialog("method")}>Method</button></nav>
       <footer className="stage-credit">By <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">Fran Dalmasso ↗</a><span aria-hidden="true">·</span><a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer">Code ↗</a></footer>

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import styles from "./NarrativeShell.module.css";
+import { StageGateContext } from "./stage-gate";
 
 export const NARRATIVE_SESSION_KEY = "ethereum-rings:introduction:v1";
 const DISMISSED_VALUE = "dismissed";
@@ -199,7 +200,10 @@ export function NarrativeShell({ children }: { children: ReactNode }) {
         inert={blocked}
         tabIndex={-1}
       >
-        {children}
+        {/* The plate reveals itself only once the introduction is out of the way;
+            behind the overlay the stage is inert and the choreography would be
+            spent unseen. */}
+        <StageGateContext.Provider value={mode === "closed"}>{children}</StageGateContext.Provider>
         {/* Rendered last so the icon lands after the stage links in tab order; it is
             positioned bottom-right regardless. */}
         <div className={styles.reopenControl}>

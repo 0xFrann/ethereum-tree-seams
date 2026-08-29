@@ -27,6 +27,21 @@ const VOLUME_TRANSITION_FRACTION = 0.12;
 const VOLUME_YEAR_BASELINE_MIN = 0.08;
 const VOLUME_YEAR_BASELINE_RANGE = 0.78;
 const VOLUME_LOCAL_CONTRAST = 0.7;
+// How the reveal staggers, in ring gaps behind the advancing front. Every line —
+// ghost grain and year ring alike — arrives at the front as the same thin
+// stroke; weight follows well behind, so the plate first exists as a drawing of
+// uniform lines and only then takes on its final form. Knots swell just behind
+// their own ring rather than being punched in at the end.
+//
+// Measured in gaps, not in the front's feather: the feather is narrower than a
+// line spacing so that lines land one at a time, and a lag tied to it would
+// have the weight arrive with the line instead of after it.
+const WEIGHT_LAG_GAPS = 2.5;
+const WEIGHT_SPAN_GAPS = 2.7;
+const KNOT_LAG_GAPS = 0.6;
+const KNOT_SPAN_GAPS = 1.9;
+const KNOT_MINIMUM_SCALE = 0.25;
+
 
 type RingGeometry = {
   year: number;
@@ -48,11 +63,25 @@ export type Geometry = {
   gap: number;
   inner: number;
   indexRadius: number;
+  restWidth: number;
   bark: number[];
+  grain: GrainContour[];
   rings: RingGeometry[];
   yearBands: YearBandGeometry[];
   selectableMonths: Selection[];
   events: EventGeometry;
+};
+
+/**
+ * The state of the plate part-way through its first drawing: how far the
+ * drawing has reached, measured as a radius in canvas pixels, and how soft
+ * that advancing edge is. One front carries grain, ink and ring weight
+ * together, so nothing arrives as a separate later pass.
+ */
+export type RevealState = {
+  radius: number;
+  feather: number;
+  index: number;
 };
 
 function interpolate(values: number[], position: number, cyclic: boolean) {
@@ -142,10 +171,12 @@ function drawBark(
   outerBark: readonly number[],
   center: number,
   color: string,
+  alphaScale = 1,
 ) {
+  if (alphaScale <= 0) return;
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = 0.22;
+  context.globalAlpha = 0.22 * alphaScale;
   context.beginPath();
   outerBark.forEach((radius, sample) => {
     const point = polar(center, radius, sample);
@@ -165,11 +196,11 @@ function drawBark(
   // separates it from the last completed year, and deterministic radial
   // fissures give the band tooth at every size.
   context.strokeStyle = color;
-  context.globalAlpha = 0.55;
+  context.globalAlpha = 0.55 * alphaScale;
   context.lineWidth = 0.9;
   traceContour(context, innerBark, center, 0, SAMPLE_COUNT, true);
   context.stroke();
-  context.globalAlpha = 0.4;
+  context.globalAlpha = 0.4 * alphaScale;
   context.lineWidth = 0.8;
   traceContour(context, outerBark, center, 0, SAMPLE_COUNT, true);
   context.stroke();
@@ -181,7 +212,7 @@ function drawBark(
     const start = innerBark[sample] + band * (0.08 + jitter * 0.3);
     const end = Math.min(start + band * (0.18 + jitter * 0.58), outerBark[sample] - band * 0.06);
     if (end <= start) continue;
-    context.globalAlpha = 0.14 + jitter * 0.28;
+    context.globalAlpha = (0.14 + jitter * 0.28) * alphaScale;
     context.lineWidth = 0.55 + jitter * 0.5;
     const from = polar(center, start, sample);
     const to = polar(center, end, sample);
@@ -199,6 +230,7 @@ function drawMonthTicks(
   indexRadius: number,
   size: number,
   color: string,
+  progress = 1,
 ) {
   const tickInside = Math.max(2.5, size * 0.004);
   const tickOutside = Math.max(4, size * 0.006);
@@ -209,6 +241,9 @@ function drawMonthTicks(
   MONTHS.forEach((_, month) => {
     for (let segment = 0; segment < VOLUME_SAMPLES_PER_MONTH; segment += 1) {
       const sample = (month * VOLUME_SAMPLES_PER_MONTH + segment) * (SAMPLE_COUNT / (MONTHS.length * VOLUME_SAMPLES_PER_MONTH));
+      // The index ring is drawn as a clockwise sweep from January, so a tick
+      // only exists once the sweep has reached it.
+      if (sample / SAMPLE_COUNT > progress) continue;
       const inner = polar(center, indexRadius - tickInside, sample);
       const outer = polar(center, indexRadius + tickOutside, sample);
       context.beginPath();
@@ -225,6 +260,9 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
   const inner = size * 0.0975;
   const outer = size * 0.39;
   const gap = (outer - inner) / Math.max(1, data.years.length - 1);
+  // The width every ring falls back to where its volume encoding is at rest.
+  // The reveal starts every ring here before the weight pass modulates it.
+  const restWidth = Math.max(MINIMUM_RING_WEIGHT, gap * 0.024);
   let baseline = Array(SAMPLE_COUNT).fill(inner);
 
   const rings = data.years.map((year): RingGeometry => {
@@ -444,7 +482,8 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
     candidate.year === segment.year && candidate.month === segment.month,
   ) === index);
 
-  return { center, size, gap, inner, indexRadius, bark, rings, yearBands, selectableMonths, events };
+  const grain = buildGrainContours(rings, yearBands, gap, inner);
+  return { center, size, gap, inner, indexRadius, restWidth, bark, grain, rings, yearBands, selectableMonths, events };
 }
 
 function fillVariableContour(
@@ -581,30 +620,103 @@ function tracePointPath(
   context.closePath();
 }
 
+function knotCentre(path: readonly { x: number; y: number }[]) {
+  let x = 0;
+  let y = 0;
+  path.forEach((point) => { x += point.x; y += point.y; });
+  return { x: x / path.length, y: y / path.length };
+}
+
 function drawKnot(
   context: CanvasRenderingContext2D,
   knot: KnotGeometry,
   color: string,
+  scale = 1,
+  alpha = 1,
 ) {
   context.save();
   context.fillStyle = color;
-  context.globalAlpha = 1;
-  tracePointPath(context, knot.path, true);
+  // A finished knot is drawn at full strength; an emerging one has to multiply
+  // into whatever the caller set, or it pops in at full opacity while it grows.
+  if (alpha >= 1) context.globalAlpha = 1;
+  else context.globalAlpha *= alpha;
+  const centre = knotCentre(knot.path);
+  const path = scale >= 1
+    ? knot.path
+    : knot.path.map((point) => ({
+      x: centre.x + (point.x - centre.x) * scale,
+      y: centre.y + (point.y - centre.y) * scale,
+    }));
+  tracePointPath(context, path, true);
   context.fill();
   context.restore();
 }
 
 export function drawStaticArtwork(
   context: CanvasRenderingContext2D,
-  data: MarketData,
+  _data: MarketData,
   geometry: Geometry,
   colors: { ink: string; grain: string; muted: string; mark: string; bark: string },
 ) {
-  const { center, rings, gap, inner, size, bark, indexRadius } = geometry;
-  context.clearRect(0, 0, size, size);
-  drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
+  context.clearRect(0, 0, geometry.size, geometry.size);
+  drawGroundLayer(context, geometry, colors);
+  drawInkLayer(context, geometry, colors);
+  drawKnotLayer(context, geometry, colors);
+  drawIndexLayer(context, geometry, colors);
+}
 
-  const emptyYearBands = geometry.yearBands.filter((band) => band.marketYearIndex === null);
+/**
+ * One ghost contour of the construction drawing, with the radius it sits at.
+ * The reveal fades these in along a soft radial front rather than uncovering
+ * them through a clip, so each one has to be addressable on its own.
+ */
+export type GrainContour = {
+  radii: number[];
+  mean: number;
+  alpha: number;
+  startSample: number;
+  sampleCount: number;
+  close: boolean;
+};
+
+function contourMean(radii: readonly number[], startSample: number, sampleCount: number) {
+  let total = 0;
+  let count = 0;
+  for (let index = startSample; index < sampleCount; index += 1) {
+    total += radii[index];
+    count += 1;
+  }
+  return count ? total / count : 0;
+}
+
+/** How far a mark at `mean` has emerged behind an advancing front. */
+function frontAlpha(reveal: { radius: number; feather: number } | undefined, mean: number) {
+  if (!reveal) return 1;
+  return clamp01((reveal.radius - mean) / Math.max(1, reveal.feather));
+}
+
+/**
+ * Every ghost contour of the construction drawing, ordered from the pith
+ * outward. Built once per resize: the reveal reads this list every frame.
+ */
+export function buildGrainContours(
+  rings: readonly RingGeometry[],
+  yearBands: readonly YearBandGeometry[],
+  gap: number,
+  inner: number,
+): GrainContour[] {
+  const contours: GrainContour[] = [];
+  const add = (
+    radii: number[],
+    alpha: number,
+    startSample = 0,
+    sampleCount = SAMPLE_COUNT,
+    close = startSample === 0 && sampleCount === SAMPLE_COUNT,
+  ) => {
+    contours.push({ radii, alpha, startSample, sampleCount, close, mean: contourMean(radii, startSample, sampleCount) });
+  };
+
+  const emptyYearBands = yearBands.filter((band) => band.marketYearIndex === null);
   const preMarketStart = emptyYearBands[0]?.innerBoundary ?? Array(SAMPLE_COUNT).fill(inner * 0.16);
   const emptyGhostAlphaAt = (progress: number) => {
     const clamped = Math.max(0, Math.min(1, progress));
@@ -619,16 +731,7 @@ export function drawStaticArtwork(
       // beside the partial 2017 ring.
       const radii = preMarketStart.map((startRadius, sample) =>
         startRadius + (firstMarketRing.radii[sample] - startRadius) * progress);
-      strokeGhostContour(
-        context,
-        radii,
-        center,
-        colors.grain,
-        0,
-        SAMPLE_COUNT,
-        true,
-        emptyGhostAlphaAt(progress),
-      );
+      add(radii, emptyGhostAlphaAt(progress));
     });
   }
 
@@ -644,60 +747,212 @@ export function drawStaticArtwork(
         const value = radius + (next - radius) * fraction + noise;
         return Math.max(radius + gap * 0.045, Math.min(next - gap * 0.045, value));
       });
-      strokeGhostContour(context, radii, center, colors.grain);
+      add(radii, GHOST_ALPHA);
     });
   }
   rings.forEach((ring) => {
     if (ring.startSample > 0) {
-      strokeGhostContour(context, ring.radii, center, colors.grain, 0, ring.startSample + 1, false);
+      add(ring.radii, GHOST_ALPHA, 0, ring.startSample + 1, false);
     }
     if (ring.activeSamples < SAMPLE_COUNT) {
-      strokeGhostContour(
-        context,
-        ring.radii,
-        center,
-        colors.grain,
-        ring.activeSamples - 1,
-        SAMPLE_COUNT,
-        false,
-      );
+      add(ring.radii, GHOST_ALPHA, ring.activeSamples - 1, SAMPLE_COUNT, false);
     }
   });
+  return contours.sort((left, right) => left.mean - right.mean);
+}
+
+/**
+ * Bark and every ghost contour: the construction drawing under the inked
+ * rings. This is the finished-plate path and keeps the original draw order,
+ * so the artwork it produces is unchanged.
+ */
+function drawGroundLayer(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { ink: string; grain: string; muted: string; mark: string; bark: string },
+) {
+  const { center, rings, bark, grain } = geometry;
+  drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
+  grain.forEach((contour) => drawGrainContour(context, contour, center, colors.grain, 1));
+}
+
+function drawGrainContour(
+  context: CanvasRenderingContext2D,
+  contour: GrainContour,
+  center: number,
+  color: string,
+  alphaScale: number,
+) {
+  if (alphaScale <= 0) return;
+  strokeGhostContour(
+    context,
+    contour.radii,
+    center,
+    color,
+    contour.startSample,
+    contour.sampleCount,
+    contour.close,
+    contour.alpha * alphaScale,
+  );
+}
+
+/**
+ * Bake the bark band on its own. Redrawing it costs roughly two hundred draw
+ * calls, which is far too much to repeat every frame, and it has to stay
+ * beneath the grain, so it cannot join the grain's progressive bake.
+ */
+export function drawBarkLayer(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { bark: string },
+) {
+  const { center, rings, bark, size } = geometry;
+  context.clearRect(0, 0, size, size);
+  drawBark(context, rings.at(-1)!.radii, bark, center, colors.bark);
+}
+
+/** How far the bark has emerged behind the front. */
+export function barkAlphaAt(geometry: Geometry, reveal: RevealState) {
+  return frontAlpha(reveal, contourMean(geometry.rings.at(-1)!.radii, 0, SAMPLE_COUNT));
+}
+
+/**
+ * Grain contours are sorted by radius and the front only advances, so the
+ * contours that have reached full opacity are always a prefix. Everything in
+ * that prefix is baked once and blitted thereafter, which keeps the per-frame
+ * work to the handful of contours actually inside the feathered edge.
+ */
+export function settledGrainCount(geometry: Geometry, reveal: RevealState, from: number) {
+  let index = from;
+  while (index < geometry.grain.length && frontAlpha(reveal, geometry.grain[index].mean) >= 1) index += 1;
+  return index;
+}
+
+export function bakeGrain(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { grain: string },
+  from: number,
+  to: number,
+) {
+  for (let index = from; index < to; index += 1) {
+    drawGrainContour(context, geometry.grain[index], geometry.center, colors.grain, 1);
+  }
+}
+
+/**
+ * The inked year rings. A ring emerges as the front reaches it and takes on
+ * its volume weight in the same movement, trailing its own outline only
+ * slightly: the weight is part of drawing the line, not a later pass over it.
+ */
+function drawInkLayer(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { ink: string },
+  reveal?: { radius: number; feather: number },
+) {
+  const { center, rings, restWidth, gap } = geometry;
   rings.forEach((ring) => {
     const end = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
-    fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.82);
+    if (!reveal) {
+      fillVariableContour(context, ring, center, colors.ink, ring.startSample, end, 0.82);
+      return;
+    }
+    const mean = contourMean(ring.radii, ring.startSample, end);
+    const arrival = frontAlpha(reveal, mean);
+    if (arrival <= 0) return;
+    const weight = clamp01((reveal.radius - mean - gap * WEIGHT_LAG_GAPS) / (gap * WEIGHT_SPAN_GAPS));
+    const weighted: RingGeometry = {
+      ...ring,
+      widths: ring.widths.map((width) => restWidth + (width - restWidth) * weight),
+    };
+    context.save();
+    context.globalAlpha = arrival;
+    fillVariableContour(context, weighted, center, colors.ink, weighted.startSample, end, 0.82);
+    context.restore();
   });
+}
 
-  geometry.events.knots.forEach((knot) => drawKnot(context, knot, colors.mark));
-  geometry.events.knots.map((knot) => knot.anchor)
-    .forEach((anchor) => {
-      if (!anchor.leader) return;
-      context.save();
-      context.strokeStyle = colors.ink;
-      context.globalAlpha = 0.55;
-      context.lineWidth = 1;
-      tracePointPath(context, anchor.leader, false);
-      context.stroke();
-      context.restore();
-    });
+/**
+ * Knots and their leaders. Each one swells from a seed as the front reaches its
+ * own radius, so a knot belongs to the ring it sits on rather than being
+ * punched into a finished plate afterwards.
+ */
+function drawKnotLayer(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { ink: string; mark: string },
+  reveal?: { radius: number; feather: number },
+) {
+  const { center, gap } = geometry;
+  const emergence = (knot: KnotGeometry) => {
+    if (!reveal) return 1;
+    const centre = knotCentre(knot.path);
+    const mean = Math.hypot(centre.x - center, centre.y - center);
+    return clamp01((reveal.radius - mean - gap * KNOT_LAG_GAPS) / (gap * KNOT_SPAN_GAPS));
+  };
+  geometry.events.knots.forEach((knot) => {
+    const grown = emergence(knot);
+    if (grown <= 0) return;
+    if (!reveal) {
+      drawKnot(context, knot, colors.mark);
+      return;
+    }
+    drawKnot(context, knot, colors.mark, KNOT_MINIMUM_SCALE + (1 - KNOT_MINIMUM_SCALE) * grown, grown);
+  });
+  geometry.events.knots.forEach((knot) => {
+    const anchor = knot.anchor;
+    if (!anchor.leader) return;
+    const grown = emergence(knot);
+    if (grown <= 0) return;
+    context.save();
+    context.strokeStyle = colors.ink;
+    context.globalAlpha = 0.55 * grown;
+    context.lineWidth = 1;
+    tracePointPath(context, anchor.leader, false);
+    context.stroke();
+    context.restore();
+  });
+}
 
+/** The index ring, its month ticks and its labels: the sheet's calendar axis. */
+function drawIndexLayer(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { muted: string },
+  progress = 1,
+) {
+  const { center, size, indexRadius } = geometry;
+  const sweep = clamp01(progress);
+  if (sweep <= 0) return;
+  context.save();
   context.strokeStyle = colors.muted;
   context.lineWidth = 1;
   context.globalAlpha = 0.45;
   context.beginPath();
-  context.arc(center, center, indexRadius, 0, TAU);
+  // Clockwise from January, because the angular axis of the plate is the year.
+  context.arc(center, center, indexRadius, -Math.PI / 2, -Math.PI / 2 + sweep * TAU);
   context.stroke();
   context.globalAlpha = 1;
-  drawMonthTicks(context, center, indexRadius, size, colors.muted);
+  context.restore();
+  // The finished plate takes the canonical call; only a sweep in progress needs
+  // to withhold the ticks the pen has not reached yet.
+  if (sweep >= 1) drawMonthTicks(context, center, indexRadius, size, colors.muted);
+  else drawMonthTicks(context, center, indexRadius, size, colors.muted, sweep);
 
   const labelFontSize = Math.max(9, size * 0.018);
   const labelClearance = Math.max(5, size * 0.012);
+  context.save();
   context.fillStyle = colors.muted;
   context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   MONTHS.forEach((month, index) => {
     const angle = -Math.PI / 2 + (index / 12) * TAU;
+    // Each label settles just behind the sweep that uncovered its tick.
+    const arrival = clamp01((sweep - index / 12) / 0.06);
+    if (arrival <= 0) return;
+    context.globalAlpha = arrival;
     const label = month.toUpperCase();
     const halfWidth = context.measureText(label).width / 2;
     const halfHeight = labelFontSize / 2;
@@ -709,6 +964,130 @@ export function drawStaticArtwork(
     const y = Math.max(10, Math.min(size - 10, rawY));
     context.fillText(label, x, y);
   });
+  context.restore();
+}
+
+/**
+ * One frame of the plate being drawn. Grain, ink and ring weight all emerge
+ * together at each radius behind a single soft front, so the construction
+ * lines and the year they belong to arrive as one gesture rather than as
+ * separate passes. Settled work is blitted; only the feathered edge is live.
+ */
+export function drawRevealFrame(
+  context: CanvasRenderingContext2D,
+  geometry: Geometry,
+  colors: { ink: string; grain: string; muted: string; mark: string; bark: string },
+  reveal: RevealState,
+  layers: { bark: HTMLCanvasElement | null; grain: HTMLCanvasElement | null; settled: number },
+) {
+  const { center, size } = geometry;
+  context.clearRect(0, 0, size, size);
+
+  // Blit the baked layers at their native device resolution. Drawing them
+  // through the context's device-pixel transform sends them down a resampling
+  // path, which smears every hairline the bake was meant to preserve.
+  const blit = (image: HTMLCanvasElement, alpha: number) => {
+    context.save();
+    context.globalAlpha = alpha;
+    context.setTransform(1, 0, 0, 1, 0, 0);
+    context.drawImage(image, 0, 0);
+    context.restore();
+  };
+
+  const barkAlpha = barkAlphaAt(geometry, reveal);
+  if (layers.bark && barkAlpha > 0) blit(layers.bark, barkAlpha);
+  if (layers.grain && layers.settled > 0) blit(layers.grain, 1);
+  for (let index = layers.settled; index < geometry.grain.length; index += 1) {
+    const contour = geometry.grain[index];
+    drawGrainContour(context, contour, center, colors.grain, frontAlpha(reveal, contour.mean));
+  }
+
+  drawInkLayer(context, geometry, colors, reveal);
+  drawKnotLayer(context, geometry, colors, reveal);
+  if (reveal.index > 0) drawIndexLayer(context, geometry, colors, reveal.index);
+}
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+/**
+ * Where the outermost ring stops growing: the live edge of the specimen. The
+ * introduction promises that this ring is unfinished and that each new day can
+ * change its shape, and nothing on the plate showed that until now. Returned
+ * in canvas units so a marker can be placed over the plate in CSS.
+ */
+/**
+ * The radius the front must reach for every mark to be finished: the last
+ * contour visible, the last ring at full weight, the last knot fully grown.
+ *
+ * Derived rather than assumed. A fixed overshoot either strands the outermost
+ * rings part-grown or leaves the front travelling through empty space after
+ * the last of them has finished, which reads as the animation stalling.
+ */
+export function revealFrontEnd(geometry: Geometry, feather: number) {
+  const { center, rings, grain, gap } = geometry;
+  const weightReach = gap * (WEIGHT_LAG_GAPS + WEIGHT_SPAN_GAPS);
+  const knotReach = gap * (KNOT_LAG_GAPS + KNOT_SPAN_GAPS);
+  let end = contourMean(rings.at(-1)!.radii, 0, SAMPLE_COUNT) + feather;
+  grain.forEach((contour) => { end = Math.max(end, contour.mean + feather); });
+  rings.forEach((ring) => {
+    const end_ = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
+    end = Math.max(end, contourMean(ring.radii, ring.startSample, end_) + weightReach);
+  });
+  geometry.events.knots.forEach((knot) => {
+    const centre = knotCentre(knot.path);
+    end = Math.max(end, Math.hypot(centre.x - center, centre.y - center) + knotReach);
+  });
+  return end;
+}
+
+/**
+ * The radii the front steps between: every line of the drawing in turn — each
+ * ghost contour of the construction grain and each inked year ring, from the
+ * pith outward — and then the reach the trailing weight needs.
+ *
+ * One stop per line, not per year. A year is six lines (five of grain and one
+ * of ink); stepping the front a year at a time made them arrive as a block,
+ * and a specimen is not laid down in blocks. It is laid down a layer at a
+ * time, and the reveal steps the same way.
+ *
+ * The ghosted arcs of a partial ring sit at their ring's radius and are the
+ * same line; stops closer together than a sliver of a gap are merged.
+ */
+export function revealStops(geometry: Geometry, feather: number) {
+  const lines = [
+    ...geometry.grain.map((contour) => contour.mean),
+    ...geometry.rings.map((ring) => {
+      const end = ring.activeSamples === SAMPLE_COUNT ? SAMPLE_COUNT : ring.activeSamples - 1;
+      return contourMean(ring.radii, ring.startSample, end);
+    }),
+  ].sort((left, right) => left - right);
+  const stops: number[] = [];
+  const sliver = geometry.gap * 0.05;
+  lines.forEach((radius) => {
+    if (stops.length && radius - stops[stops.length - 1] < sliver) return;
+    stops.push(radius);
+  });
+  stops.push(revealFrontEnd(geometry, feather));
+  return stops;
+}
+
+/** The radius at a fractional position along the stops, counting from the pith. */
+export function radiusAtStop(stops: readonly number[], position: number) {
+  if (!stops.length) return 0;
+  const clamped = Math.max(0, Math.min(stops.length, position));
+  const index = Math.min(stops.length - 1, Math.floor(clamped));
+  const from = index === 0 ? 0 : stops[index - 1];
+  const to = stops[index];
+  return from + (to - from) * (clamped - index);
+}
+
+export function growthFrontier(geometry: Geometry) {
+  const ring = geometry.rings.at(-1);
+  if (!ring) return null;
+  const sample = Math.max(0, Math.min(SAMPLE_COUNT - 1, ring.activeSamples - 1));
+  return polar(geometry.center, ring.radii[sample], sample);
 }
 
 export function drawSelection(

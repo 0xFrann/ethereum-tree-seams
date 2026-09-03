@@ -33,6 +33,8 @@ import {
   radiusAtStop,
   revealStops,
   settledGrainCount,
+  yearAtRadius,
+  yearReach,
   type Geometry,
 } from "./eth-rings/renderer";
 import {
@@ -40,6 +42,7 @@ import {
   DETAIL_SPEED_MS,
   FRONT_FEATHER_GAPS,
   DRAW_END,
+  PLATE_END,
   SCORE,
   SELECTION_WASH,
   TITLE_HOLD_MS,
@@ -49,6 +52,7 @@ import {
   easeInOutCubic,
   easeOutCubic,
   indexSchedule,
+  monthAtIndex,
   PLATE_RAMP,
   phase,
   type ChainLink,
@@ -58,18 +62,26 @@ import { TypeOn, WipeIn } from "./eth-rings/TypeOn";
 import { useReducedMotion } from "./eth-rings/use-motion";
 import { useStageOpen } from "./stage-gate";
 
-type RevealPlan = { feather: number; stops: number[]; schedule: (t: number) => number };
+type RevealPlan = {
+  feather: number;
+  stops: number[];
+  schedule: (t: number) => number;
+  years: { year: number; reach: number }[];
+};
 
 /**
  * How the plate will be drawn: one stop per line of the drawing, opening
  * slowly and gathering pace. The line count comes from the geometry, so the
  * schedule follows whatever the record has grown to.
+ *
+ * The plan also carries the year each radius belongs to, because the readout
+ * captions the front while it travels and must not recompute that per frame.
  */
 function planReveal(geometry: Geometry): RevealPlan {
   const feather = geometry.gap * FRONT_FEATHER_GAPS;
   const stops = revealStops(geometry, feather);
   const schedule = buildRamp(stops.length, PLATE_RAMP.ramp, PLATE_RAMP.range, PLATE_RAMP.curve, PLATE_RAMP.hold, PLATE_RAMP.finale);
-  return { feather, stops, schedule };
+  return { feather, stops, schedule, years: yearReach(geometry) };
 }
 
 type LoadState =
@@ -244,51 +256,59 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const revealPlanRef = useRef<RevealPlan | null>(null);
   const cacheRef = useRef<HTMLCanvasElement | null>(null);
   const idleSelection = useMemo<Selection>(() => ({ year: data.years[latestYearIndex].year, month: latestMonth }), [data.years, latestMonth, latestYearIndex]);
-  const [selection, setSelection] = useState<Selection>({ year: data.years[latestYearIndex].year, month: data.years[latestYearIndex].months[0]?.month ?? 0 });
+  // The month tape spans the whole archive so it can roll across a year
+  // boundary in the direction actually travelled. It has to start at the
+  // chronology origin, not at the first market year: a knot in the unpriced
+  // interval is selectable, and a tape that began in 2017 would scroll such a
+  // reading clean off the strip. It is also where the growth roll begins.
+  const firstArchiveYear = Number(data.chronology.origin.slice(0, 4));
+  const archiveYearCount = data.years.at(-1)!.year - firstArchiveYear + 1;
+  // The reading opens on the pith, where the front opens, and January is the
+  // label the growing year carries until there is a calendar to move it.
+  const [selection, setSelection] = useState<Selection>({ year: firstArchiveYear, month: 0 });
   const [eventSelection, setEventSelection] = useState<EventSelection>(null);
   const [announceSelection, setAnnounceSelection] = useState(false);
   const [dialog, setDialog] = useState<DetailsDialog>(null);
   const selectionRef = useRef(selection);
   const eventSelectionRef = useRef(eventSelection);
 
-  // The settling sweep runs across the final year, from its January to the
-  // month the record actually reaches.
-  const sweepYear = data.years[latestYearIndex].year;
-  const sweepFrom = data.years[latestYearIndex].months[0]?.month ?? 0;
-  const sweepTo = latestMonth;
-
   const stageOpen = useStageOpen();
   const reduced = useReducedMotion();
   // Which beats of the score have been reached. One clock fires all of them,
   // so the page arrives as a composition rather than as separate animations.
-  const cueRef = useRef({ header: false, plate: false, readout: false, note: false });
-  const [cues, setCues] = useState({ header: false, plate: false, readout: false, note: false });
+  const cueRef = useRef({ header: false, plate: false, grown: false, readout: false, note: false });
+  const [cues, setCues] = useState({ header: false, plate: false, grown: false, readout: false, note: false });
   const fireCue = useCallback((name: keyof typeof cueRef.current) => {
     if (cueRef.current[name]) return;
     cueRef.current = { ...cueRef.current, [name]: true };
     setCues(cueRef.current);
   }, []);
   const allCues = useCallback(() => {
-    if (cueRef.current.header && cueRef.current.plate && cueRef.current.readout && cueRef.current.note) return;
-    cueRef.current = { header: true, plate: true, readout: true, note: true };
+    if (cueRef.current.header && cueRef.current.plate && cueRef.current.grown && cueRef.current.readout && cueRef.current.note) return;
+    cueRef.current = { header: true, plate: true, grown: true, readout: true, note: true };
     setCues(cueRef.current);
   }, []);
   const [noteSettled, setNoteSettled] = useState(false);
   // Tier 2 is every deliberate change. `announceSelection` already separates a
   // committed selection from a hover, so it doubles as the motion gate.
   const [commitSeq, setCommitSeq] = useState(0);
-  // The wash that dims everything but the selected month. It eases up during
-  // the settling sweep so the finished plate does not change colour in a step.
+  // The wash that dims everything but the selected month. It eases in over the
+  // wash beat so the finished plate does not change colour in a step.
   const washRef = useRef(0);
   // Baked reveal layers: the bark band, and the grain contours the front has
   // already fully uncovered. Only the feathered edge is drawn live.
   const barkLayerRef = useRef<HTMLCanvasElement | null>(null);
   const grainLayerRef = useRef<{ surface: HTMLCanvasElement; context: CanvasRenderingContext2D } | null>(null);
   const settledGrainRef = useRef(0);
-  const [sweeping, setSweeping] = useState(false);
-  // Any deliberate act during the settling sweep wins: an animation must never
-  // pull the reading back off what the reader just chose.
-  const sweepInterruptedRef = useRef(false);
+  // True for the whole entrance: the counters roll rather than swap, and the
+  // plate takes no pointer input. A reader who runs the mouse over a specimen
+  // that is still being drawn is not taking a reading, and until this change
+  // an idle cursor crossing the canvas cancelled the rest of the score.
+  const [rolling, setRolling] = useState(false);
+  // A deliberate act during the entrance still wins: an animation must never
+  // pull the reading back off what the reader just chose. With the pointer
+  // held off, only the keyboard and the dialogs can reach this.
+  const interruptedRef = useRef(false);
   const frontierRef = useRef<HTMLSpanElement>(null);
   const revealElapsedRef = useRef(0);
   const revealPlayedRef = useRef(false);
@@ -322,7 +342,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
 
   const selectMarket = useCallback((next: Selection, announce: boolean, nextEvent: EventSelection = null) => {
     setAnnounceSelection(announce);
-    sweepInterruptedRef.current = true;
+    interruptedRef.current = true;
     // Only a committed selection advances the sequence; scrubbing the plate
     // with the pointer must leave the readout perfectly still.
     if (announce) setCommitSeq((value) => value + 1);
@@ -332,7 +352,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const selectEvent = useCallback((nextEvent: Exclude<EventSelection, null>, announce: boolean) => {
     const market = marketForEvent(nextEvent);
     setAnnounceSelection(announce);
-    sweepInterruptedRef.current = true;
+    interruptedRef.current = true;
     if (announce) setCommitSeq((value) => value + 1);
     setEventSelection(nextEvent);
     if (market) setSelection(market);
@@ -429,7 +449,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       revealActiveRef.current = false;
       revealPlayedRef.current = true;
       washRef.current = SELECTION_WASH;
-      setSweeping(false);
+      setRolling(false);
       allCues();
       setSelection(idleSelection);
       setAnnounceSelection(true);
@@ -444,6 +464,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       // the tab, and the per-frame clamp keeps the resumed step from jumping.
       let last = performance.now();
       let interruptionPainted = false;
+      // The plate is inert for the whole entrance, and the counters roll with
+      // it rather than swapping in place.
+      setRolling(true);
       const step = (now: number) => {
         if (disposed) return;
         const geometry = geometryRef.current;
@@ -456,6 +479,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         // plate is what makes the page one composition.
         if (elapsed >= SCORE.header.start) fireCue("header");
         if (elapsed >= SCORE.plate.start) fireCue("plate");
+        if (elapsed >= PLATE_END) fireCue("grown");
         if (elapsed >= SCORE.readout.start) fireCue("readout");
         if (elapsed >= SCORE.note.start) fireCue("note");
 
@@ -487,6 +511,22 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             grain: grainLayer?.surface ?? null,
             settled: settledGrainRef.current,
           });
+
+          // The readout is a caption on the drawing, not a separate animation
+          // about it. While the front travels it names the year being laid
+          // down and holds that year's January; once the calendar is under
+          // way it follows the pen round to the month the record reaches and
+          // stops there, where the record does.
+          //
+          // A reader who has taken the plate over owns the reading from then
+          // on, so the caption stops writing itself.
+          if (!interruptedRef.current) {
+            const reading: Selection = elapsed < SCORE.index.start
+              ? { year: yearAtRadius(plan.years, state.radius), month: 0 }
+              : { year: idleSelection.year, month: Math.min(idleSelection.month, monthAtIndex(state.index)) };
+            const current = selectionRef.current;
+            if (reading.year !== current.year || reading.month !== current.month) setSelection(reading);
+          }
           revealFrame = requestAnimationFrame(step);
           return;
         }
@@ -496,43 +536,39 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         if (!revealPlayedRef.current) {
           revealActiveRef.current = false;
           revealPlayedRef.current = true;
-          // Interruptions count from here. The pointer crossing or leaving
-          // the plate while it was still being drawn is not a reading being
-          // taken, and the flag it left behind must not cancel a sweep that
-          // has not started.
-          sweepInterruptedRef.current = false;
-          setSweeping(true);
         }
 
         const finish = () => {
           washRef.current = SELECTION_WASH;
-          setSweeping(false);
+          setRolling(false);
           setAnnounceSelection(true);
-          setSelection({ year: sweepYear, month: sweepTo });
+          setSelection(idleSelection);
           allCues();
         };
 
-        // A reader who acts during the sweep wins outright: the reading stays
-        // where they put it. The score still plays on — the readout and the
-        // note are cued by the clock, not by the sweep landing — or the rest
-        // of the sheet would never arrive.
-        if (sweepInterruptedRef.current) {
+        // The reading arrived with the calendar, so what is left is the plate
+        // dimming to it. Easing the wash in rather than dropping it keeps the
+        // finished specimen from changing colour in a step.
+        //
+        // A reader who acts here wins outright: the reading stays where they
+        // put it, and the plate takes its wash at once rather than fading down
+        // around a segment they did not choose. The score still plays on — the
+        // note is cued by the clock, not by the wash landing — or the rest of
+        // the sheet would never arrive.
+        if (interruptedRef.current) {
           if (!interruptionPainted) {
             interruptionPainted = true;
             washRef.current = SELECTION_WASH;
-            setSweeping(false);
+            setRolling(false);
             paintSelection();
           }
         } else {
-          const settling = phase(elapsed, SCORE.sweep.start, SCORE.sweep.duration, easeInOutCubic);
-          washRef.current = SELECTION_WASH * settling;
-          const month = sweepFrom + Math.round((sweepTo - sweepFrom) * settling);
-          if (month !== selectionRef.current.month) setSelection({ year: sweepYear, month });
-          else paintSelection();
+          washRef.current = SELECTION_WASH * phase(elapsed, SCORE.wash.start, SCORE.wash.duration, easeInOutCubic);
+          paintSelection();
         }
 
         if (elapsed >= SCORE.note.start) {
-          if (sweepInterruptedRef.current) allCues(); else finish();
+          if (interruptedRef.current) allCues(); else finish();
           return;
         }
         revealFrame = requestAnimationFrame(step);
@@ -572,7 +608,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       cancelAnimationFrame(frame);
       cancelAnimationFrame(revealFrame);
     };
-  }, [allCues, data, fireCue, idleSelection, paintSelection, reduced, stageOpen, sweepFrom, sweepTo, sweepYear]);
+  }, [allCues, data, fireCue, idleSelection, paintSelection, reduced, stageOpen]);
   useEffect(paintSelection, [paintSelection, selection, eventSelection]);
 
   const interactionAt = useCallback((clientX: number, clientY: number): Selection | null => {
@@ -636,32 +672,28 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const volatilityLabel = volatilityPercent === null ? null : `${volatilityPercent.toFixed(1)}%`;
   const priceSummary = averagePrice === null ? "No market observation for this month." : `Average price ${priceUsd(averagePrice)}. Volatility ${volatilityLabel}.`;
   // Tier 2 and Tier 1 only. During a hover scrub the numbers swap in place:
-  // a counter that never settles is a counter nobody can read. The settling
-  // sweep rolls too — that is the reading being taken, not a scrub.
-  const rollNumbers = !reduced && cues.readout && (announceSelection || sweeping);
-  // The month tape spans the whole archive so it can roll across a year
-  // boundary in the direction actually travelled. It has to start at the
-  // chronology origin, not at the first market year: a knot in the unpriced
-  // interval is selectable, and a tape that began in 2017 would scroll such a
-  // reading clean off the strip.
-  const firstArchiveYear = Number(data.chronology.origin.slice(0, 4));
-  const archiveYearCount = data.years.at(-1)!.year - firstArchiveYear + 1;
-
+  // a counter that never settles is a counter nobody can read. The entrance
+  // rolls throughout — that is the reading being taken, not a scrub.
+  const rollNumbers = !reduced && cues.readout && (announceSelection || rolling);
   return (
-    <section className={`explorer explorer-stage${cues.plate ? " is-plate" : ""}${cues.readout ? " is-readout" : ""}${cues.note ? " is-note" : ""}`} aria-label="Ethereum annual rings explorer">
+    <section className={`explorer explorer-stage${rolling ? " is-drawing" : ""}${cues.plate ? " is-plate" : ""}${cues.grown ? " is-grown" : ""}${cues.readout ? " is-readout" : ""}${cues.note ? " is-note" : ""}`} aria-label="Ethereum annual rings explorer">
       <StageTitle data={data} annotate={cues.header} />
       <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
         <p className="period-date"><MonthRoll selection={selection} firstYear={firstArchiveYear} yearCount={archiveYearCount} active={rollNumbers} /> <Odometer value={String(selection.year)} active={rollNumbers} /></p>
         <p className="price-range">{priceLow === null || priceHigh === null ? "No market data" : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
         <dl className="price-observations"><div><dt>Average</dt><dd>{averagePrice === null ? "—" : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div><dt>Volatility</dt><dd>{volatilityLabel === null ? "—" : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
       </section>
+      {/* The plate takes no pointer input while it is being drawn. Running a
+          cursor over a specimen that is still growing is not a reading being
+          taken, and treating it as one used to cancel the rest of the score.
+          The keyboard is left live: a keypress is deliberate. */}
       <div className="graph-stage">
         <canvas id="rings-explorer-entry" ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
           aria-label={`Interactive Ethereum annual rings. Selected ${periodLabel}; ${priceSummary} Use left and right arrows for months on this ring, up and down arrows for years.`}
           aria-describedby="rings-instructions rings-readout" onKeyDown={handleCanvasKeyDown}
-          onPointerLeave={(event) => { if (event.pointerType === "mouse") restoreIdleSelection(); }}
-          onPointerMove={(event) => { if (event.pointerType !== "mouse") return; const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, false); else restoreIdleSelection(); }}
-          onPointerDown={(event) => { const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, true); }}>
+          onPointerLeave={(event) => { if (rolling || event.pointerType !== "mouse") return; restoreIdleSelection(); }}
+          onPointerMove={(event) => { if (rolling || event.pointerType !== "mouse") return; const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, false); else restoreIdleSelection(); }}
+          onPointerDown={(event) => { if (rolling) return; const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, true); }}>
           Ethereum annual-ring market chart. Equivalent period and event controls are available around the chart.
         </canvas>
         <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot for its note.</p>

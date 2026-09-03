@@ -1073,6 +1073,27 @@ export function revealStops(geometry: Geometry, feather: number) {
   return stops;
 }
 
+/**
+ * Each year paired with the radius at which its band is wholly behind the
+ * front — the midline to the next year, so a band is "reached" when the
+ * drawing is closer to its successor than to it.
+ *
+ * Computed with the geometry rather than per frame: it is a couple of dozen
+ * means over the sample ring, and the reveal asks for it sixty times a second.
+ */
+export function yearReach(geometry: Geometry) {
+  return geometry.yearBands.map((band) => ({
+    year: band.year,
+    reach: band.outerBoundary.reduce((sum, radius) => sum + radius, 0) / Math.max(1, band.outerBoundary.length),
+  }));
+}
+
+/** The year the front is currently laying down, given that table. */
+export function yearAtRadius(reach: readonly { year: number; reach: number }[], radius: number) {
+  const band = reach.find((candidate) => radius < candidate.reach);
+  return band ? band.year : reach.at(-1)?.year ?? 0;
+}
+
 /** The radius at a fractional position along the stops, counting from the pith. */
 export function radiusAtStop(stops: readonly number[], position: number) {
   if (!stops.length) return 0;

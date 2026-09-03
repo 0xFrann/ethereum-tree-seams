@@ -33,29 +33,36 @@ test("plays the page from one score, in the order the sheet is made", () => {
     [...motion.matchAll(/(\w+): \{ start: (\d+), duration: (\d+) \}/g)]
       .map(([, name, start, duration]) => [name, { start: Number(start), duration: Number(duration) }]),
   );
-  // Label the sheet, mount the specimen, place the instrument, take the
-  // reading, and only then annotate it.
-  assert.ok(beats.header.start < beats.plate.start, "the sheet is labelled first");
-  assert.ok(beats.plate.start < beats.readout.start, "the specimen precedes its reading");
-  assert.ok(beats.readout.start < beats.sweep.start, "the instrument is placed before it travels");
-  assert.ok(beats.sweep.start < beats.note.start, "the note annotates a reading already taken");
+  // Label the sheet, mount the specimen and place the instrument on it, take
+  // the reading, and only then annotate it. The label, the specimen and the
+  // readout share the downbeat: the growth front opens so slowly that holding
+  // them back reads as hesitation rather than as precedence.
+  assert.ok(beats.header.start <= beats.plate.start, "the sheet is labelled no later than the specimen is mounted");
+  assert.equal(beats.plate.start, beats.header.start, "the plate opens on the header's downbeat");
+  // The readout is a caption on the growth, not a second animation about it,
+  // so it opens with the front rather than after the specimen is finished.
+  assert.equal(beats.readout.start, beats.plate.start, "the reading opens on the plate's downbeat");
+  assert.ok(beats.index.start < beats.wash.start, "the calendar moves the reading before the plate dims to it");
+  assert.ok(beats.wash.start < beats.note.start, "the note annotates a reading already taken");
   // The note's content is a function of the selected month, so it must not
-  // exist while the sweep is still moving through months.
-  assert.ok(beats.sweep.start + beats.sweep.duration <= beats.note.start, "the sweep finishes before the note arrives");
+  // exist while the calendar is still moving the reading through months.
+  assert.ok(beats.index.start + beats.index.duration <= beats.note.start, "the calendar finishes before the note arrives");
   // Beats overlap; strict back-to-back beats leave dead air between them.
   assert.ok(beats.plate.start < beats.header.start + beats.header.duration, "beats cascade rather than queue");
   // The calendar waits for the plate to finish rather than closing it out, so
   // it reads as its own arrival instead of the tail of the growth — and it
-  // waits long enough for the finished shape to be seen still first.
+  // waits long enough for the finished shape to be seen still first, with the
+  // reading resting on the last year's January.
   assert.ok(beats.index.start - (beats.plate.start + beats.plate.duration) >= 800, "the calendar pauses before its first month");
-  assert.ok(beats.readout.start > beats.index.start + beats.index.duration, "the numbers wait for the calendar");
+  // The plate no longer hands off to a separate spin-up of the numbers.
+  assert.ok(!beats.sweep, "the reading must not travel in a beat of its own");
   // Knots are no longer a beat at all; they ride the front with the rings.
   assert.ok(!beats.knots, "knots must not have a phase of their own");
   // The growth is the centrepiece and is paced to be watched.
   const longest = Object.entries(beats).sort((a, b) => b[1].duration - a[1].duration)[0][0];
   assert.equal(longest, "plate", "the plate must be the longest beat on the page");
-  // A pause between the reading being placed and it starting to travel.
-  assert.ok(beats.sweep.start > beats.readout.start + beats.readout.duration, "the sweep waits before it spins");
+  // A pause between the calendar landing and the plate dimming to it.
+  assert.ok(beats.wash.start > beats.index.start + beats.index.duration, "the wash waits for the calendar to land");
   // Ring weight is a property of the front, not a beat of its own.
   assert.doesNotMatch(motion, /weight: \{ start:/);
 });
@@ -71,14 +78,20 @@ test("keeps every beat on the one clock", () => {
   // No stray delays in the stylesheet competing with the score.
   assert.doesNotMatch(styles, /\.is-\w+ \.[\w-]+ \{ opacity: 1; transition: opacity [\d.]+s ease \.\d+s/);
   assert.doesNotMatch(styles, /is-annotated/);
-  // The growing edge belongs to the plate, not to an empty sheet.
-  assert.match(styles, /\.is-plate \.growth-frontier \{ animation: frontier-breath/);
+  // The live edge belongs to the finished specimen, not to an empty sheet: it
+  // marks the outermost ring as still growing in reality, which only reads
+  // once that ring exists to grow from.
+  assert.match(explorer, /if \(elapsed >= PLATE_END\) fireCue\("grown"\)/);
+  assert.match(styles, /\.is-grown \.growth-frontier \{ animation: frontier-breath/);
+  assert.doesNotMatch(styles, /\.is-plate \.growth-frontier/);
 });
 
-test("shows the first reading at the sweep's origin, not at the present", () => {
-  // The readout used to appear showing the present month, snap back to
-  // January when the sweep began, and roll forward to where it started.
-  assert.match(explorer, /useState<Selection>\(\{ year: data\.years\[latestYearIndex\]\.year, month: data\.years\[latestYearIndex\]\.months\[0\]\?\.month \?\? 0 \}\)/);
+test("opens the reading where the drawing opens, not at the present", () => {
+  // The readout used to appear after the plate was finished, showing the
+  // present month, then snap back to January and spin forward to where it
+  // started — a second animation about a fact the plate had just spent six
+  // seconds stating. It now opens on the pith with the front.
+  assert.match(explorer, /useState<Selection>\(\{ year: firstArchiveYear, month: 0 \}\)/);
   // Nothing is announced until the reading is final.
   assert.match(explorer, /const \[announceSelection, setAnnounceSelection\] = useState\(false\)/);
   // The path that plays no reveal still lands on the present.
@@ -139,7 +152,7 @@ test("grows the plate organically rather than assembling it in passes", () => {
   // The canvas keeps drawing until the calendar has closed the sheet.
   assert.match(motion, /export const DRAW_END/);
   assert.match(explorer, /if \(elapsed < DRAW_END\)/);
-  // The plate opens under the header rather than after it.
+  // The plate runs under the header rather than after it.
   assert.ok(beatsOf(motion).plate.start < beatsOf(motion).header.duration, "the plate overlaps the header");
   // No travelling hard edge: the old clip reveal is gone.
   assert.doesNotMatch(renderer, /grainRadius|inkRadius/);
@@ -260,33 +273,61 @@ test("keeps the front's own cost off the critical path", () => {
   assert.match(explorer, /radiusAtStop\(stops, schedule\(/);
 });
 
-test("takes the reading as a movement instead of a jump", () => {
-  // The finished plate used to appear, then snap: a wash dropped over
-  // everything and a month was selected in the same instant.
-  assert.match(motion, /sweep: \{ start: \d+, duration: \d+ \}/);
-  assert.match(explorer, /washRef\.current = SELECTION_WASH \* settling/);
+test("rolls the reading with the drawing rather than after it", () => {
+  // The year the readout shows is the year the front is laying down, so the
+  // number is a caption on the ring being drawn and the reader learns what
+  // the widening means while it is still widening.
+  assert.match(renderer, /export function yearReach/);
+  assert.match(renderer, /export function yearAtRadius/);
+  assert.match(explorer, /return \{ feather, stops, schedule, years: yearReach\(geometry\) \}/);
+  assert.match(explorer, /year: yearAtRadius\(plan\.years, state\.radius\), month: 0/);
+  // The reach table is built with the geometry, not per frame: it is a couple
+  // of dozen means over the sample ring and the reveal asks sixty times a second.
+  assert.doesNotMatch(explorer, /yearReach\(geometry\)[\s\S]{0,60}requestAnimationFrame/);
+  // Then the calendar takes it over: the month follows the pen from January
+  // round to the month the record actually reaches, and stops where it does.
+  assert.match(motion, /export function monthAtIndex/);
+  assert.match(explorer, /month: Math\.min\(idleSelection\.month, monthAtIndex\(state\.index\)\)/);
+  // The old spin-up after the plate is gone, along with the beat it rode.
+  assert.doesNotMatch(explorer, /sweepFrom|sweepTo|sweepYear/);
+
+  // The finished plate used to appear and then snap: a wash dropped over
+  // everything in the same instant the month landed. It eases in instead.
+  assert.match(motion, /wash: \{ start: \d+, duration: \d+ \}/);
+  assert.match(explorer, /washRef\.current = SELECTION_WASH \* phase\(elapsed, SCORE\.wash\.start, SCORE\.wash\.duration, easeInOutCubic\)/);
   assert.match(explorer, /context\.globalAlpha = washRef\.current/);
   assert.doesNotMatch(explorer, /context\.globalAlpha = 0\.3/);
-  // The selection travels across the final year rather than landing on it.
-  assert.match(explorer, /const month = sweepFrom \+ Math\.round\(\(sweepTo - sweepFrom\) \* settling\)/);
-  // The sweep must not narrate itself to a screen reader month by month: it
+  // The roll must not narrate itself to a screen reader month by month: it
   // starts silent and is announced once, when the reading is final.
   assert.match(explorer, /const \[announceSelection, setAnnounceSelection\] = useState\(false\)/);
   assert.match(explorer, /setAnnounceSelection\(true\);/);
-  assert.doesNotMatch(explorer, /setAnnounceSelection\(true\)[\s\S]{0,200}const settling = phase/);
-  // A reader who acts during the sweep wins; the animation stops rather than
+  // A reader who acts during the entrance wins; the roll stops rather than
   // pulling the reading back off what they just chose.
-  assert.match(explorer, /if \(sweepInterruptedRef\.current\) \{/);
-  assert.match(explorer, /sweepInterruptedRef\.current = true;/);
-  // But the rest of the sheet still arrives: the readout and the note are
-  // cued by the clock, so an interrupted sweep must play the score out rather
-  // than return from the loop and leave them blank.
-  assert.match(explorer, /if \(sweepInterruptedRef\.current\) allCues\(\); else finish\(\);/);
-  assert.doesNotMatch(explorer, /if \(sweepInterruptedRef\.current\) \{[^}]*return;/);
-  // And an interruption only counts once the sweep is running: the pointer
-  // crossing the plate while it was still being drawn used to cancel a sweep
-  // that had not started, and with it the beats after.
-  assert.match(explorer, /revealPlayedRef\.current = true;[\s\S]{0,400}sweepInterruptedRef\.current = false;/);
+  assert.match(explorer, /if \(interruptedRef\.current\) \{/);
+  assert.match(explorer, /interruptedRef\.current = true;/);
+  assert.match(explorer, /if \(!interruptedRef\.current\) \{\s*\n\s*const reading: Selection/);
+  // But the rest of the sheet still arrives: the note is cued by the clock,
+  // so an interrupted entrance must play the score out rather than return
+  // from the loop and leave it blank.
+  assert.match(explorer, /if \(interruptedRef\.current\) allCues\(\); else finish\(\);/);
+  assert.doesNotMatch(explorer, /if \(interruptedRef\.current\) \{[^}]*return;/);
+});
+
+test("holds the pointer off the plate while it is being drawn", () => {
+  // Running a cursor over a specimen that is still growing is not a reading
+  // being taken. It used to set the interrupt flag and cancel the rest of the
+  // score, so an idle mouse resting on the canvas cost the page its ending.
+  assert.match(explorer, /onPointerMove=\{\(event\) => \{ if \(rolling \|\| event\.pointerType !== "mouse"\) return;/);
+  assert.match(explorer, /onPointerLeave=\{\(event\) => \{ if \(rolling \|\| event\.pointerType !== "mouse"\) return;/);
+  assert.match(explorer, /onPointerDown=\{\(event\) => \{ if \(rolling\) return;/);
+  // The gate is open for the whole entrance and closes when the score lands or
+  // when a reader takes the plate over deliberately.
+  assert.match(explorer, /setRolling\(true\);/);
+  assert.match(explorer, /setRolling\(false\);/);
+  // The keyboard stays live: a keypress is deliberate.
+  assert.match(explorer, /onKeyDown=\{handleCanvasKeyDown\}/);
+  // And a crosshair over an inert plate invites a click that does nothing.
+  assert.match(styles, /\.is-drawing \.rings-canvas \{ cursor: default; \}/);
 });
 
 test("keeps the blocks that change with the data from resizing the page", () => {
@@ -307,8 +348,8 @@ test("keeps the blocks that change with the data from resizing the page", () => 
 test("reserves motion for arrival and commitment, never for a hover scrub", () => {
   // `announceSelection` is false for pointer moves and true for a click, a key
   // or a dialog pick. Both the counter and the note wipe hang off it.
-  // The settling sweep rolls too, but that is the reading being taken.
-  assert.match(explorer, /const rollNumbers = !reduced && cues\.readout && \(announceSelection \|\| sweeping\)/);
+  // The entrance rolls throughout, but that is the reading being taken.
+  assert.match(explorer, /const rollNumbers = !reduced && cues\.readout && \(announceSelection \|\| rolling\)/);
   assert.match(explorer, /if \(announce\) setCommitSeq\(\(value\) => value \+ 1\)/);
   assert.match(explorer, /<WipeIn wipeKey=\{String\(commitSeq\)\}>/);
   // Scrubbing must not re-strike the note.

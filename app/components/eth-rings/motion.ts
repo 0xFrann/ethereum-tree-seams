@@ -114,7 +114,7 @@ export function buildRamp(
 //           blocks
 //   curve   ease-in on the log scale, so the opening lines stay slow for a
 //           while and the pace breaks late rather than immediately
-export const PLATE_RAMP = { ramp: 18, range: 25, curve: easeInQuad, hold: 0.55, finale: 0.8 } as const;
+export const PLATE_RAMP = { ramp: 18, range: 18, curve: easeInQuad, hold: 0.55, finale: 0.8 } as const;
 // The calendar closes the sheet in two gestures: January is struck and held,
 // then the pen completes the circle in one continuous sweep — starting slow,
 // running, and landing on December.
@@ -138,6 +138,18 @@ export function indexSchedule(t: number) {
   return 1 / 12 + (11 / 12) * easeInOutCubic(Math.min(1, (at - january - hold) / sweep));
 }
 
+/**
+ * The month the calendar's pen is in at `progress` around the ring.
+ *
+ * The reading follows the pen rather than trailing it: the month changes the
+ * moment its arc is entered, so the number and the stroke name the same thing.
+ * January is the exception at both ends — it is struck and then held, and a
+ * bare floor would call that hold February.
+ */
+export function monthAtIndex(progress: number) {
+  return Math.max(0, Math.min(11, Math.ceil(Math.max(0, Math.min(1, progress)) * 12) - 1));
+}
+
 /** Normalised progress of a phase that starts at `start` ms and runs `duration` ms. */
 export function phase(elapsed: number, start: number, duration: number, ease: Easing = linear) {
   if (duration <= 0) return elapsed >= start ? 1 : 0;
@@ -158,14 +170,30 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // reads as stalling rather than rhythm.
 //
 //   header   the project introduces itself, then rattles off its provenance
-//   plate    the specimen is drawn (the index ring closes it out)
-//   readout  the instrument is placed, showing the January it starts from
-//   sweep    the reading travels round to the present
+//   plate    the specimen is drawn
+//   readout  the instrument is placed on the same downbeat, and the year it
+//            shows is the year the growth front is currently laying down
+//   index    the calendar is struck around the finished plate, and the month
+//            follows the pen from January round to the present
+//   wash     the plate dims to the month the reading landed on
 //   note     and only then is that reading annotated
 //
+// The readout does not wait for the specimen to be finished before it is
+// placed. An instrument that arrives afterwards and then spins up to the
+// present is a second animation about the same fact the plate has just spent
+// six seconds stating. Reading the front instead makes the two one gesture:
+// the number is a caption on the ring being drawn, and the reader learns what
+// the widening actually means while it is still widening.
+//
+// It reads the year and no more. The front is radial — it lays whole contours
+// down at once — so at no moment during the growth is one month of a year
+// further along than another, and a month rolling under the year would be
+// showing a precision the drawing does not have. January is the year's label
+// here, not a reading, and it holds until there is a calendar to move it.
+//
 // The note is deliberately last. Its content is a function of the selected
-// month, so placed any earlier it would flicker through every month the sweep
-// passes over.
+// month, so placed any earlier it would flicker through every month the
+// calendar passes over.
 //
 // The plate is far and away the longest beat: the growth is the thing worth
 // watching, and it is paced to be watched rather than got through. Most of
@@ -174,33 +202,40 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // that the rush lands at exactly that: shorten it and lines start sharing
 // frames, and the layers turn back into blocks.
 //
-// The plate opens under the header rather than after it. The front starts so
-// slowly that its first minute of travel shows almost nothing, so beginning it
-// early costs nothing and puts the specimen's first contours on screen just as
-// the provenance dates start rattling past above them.
+// The plate, the header and the readout open on the same beat. The front
+// starts so slowly that its first moment of travel shows almost nothing, so it
+// costs the header no attention to share the downbeat with it: the first line
+// of the label is struck and the pith is set at once, and by the time the
+// provenance dates are rattling past the specimen's first contours are already
+// under them.
 //
-// Each beat after the plate waits a moment for the one before it to land,
-// rather than the calendar, the numbers and the spin all arriving at once.
+// This is the one place the sheet is not made strictly in order. Labelling
+// first is the rule everywhere else in this score, but the plate's opening is
+// slow enough that starting it a beat late reads as the page hesitating rather
+// than as the label taking precedence.
 //
 // The calendar waits longest. The plate ends in a rush and a settling of
 // weight, and the calendar is a new idea — the specimen is finished, now it
 // is measured — so it is given a real pause: long enough for the finished
-// shape to be seen still before the first month is struck against it.
+// shape to be seen still, and for the reading to be seen resting on the last
+// year's January, before the first month is struck against it.
 export const SCORE = {
   header: { start: 0, duration: 2230 },
-  plate: { start: 600, duration: 6600 },
-  index: { start: 8100, duration: 1300 },
-  readout: { start: 9490, duration: 360 },
-  sweep: { start: 10180, duration: 600 },
-  note: { start: 10780, duration: 360 },
+  plate: { start: 0, duration: 5800 },
+  readout: { start: 0, duration: 400 },
+  index: { start: 6700, duration: 1300 },
+  wash: { start: 8180, duration: 620 },
+  note: { start: 8800, duration: 360 },
 } as const;
+
+// Where the specimen itself is finished, before the calendar closes the sheet.
+// The live-edge marker waits for this: it says the outermost ring is still
+// growing in reality, which only reads once that ring exists to grow from.
+export const PLATE_END = SCORE.plate.start + SCORE.plate.duration;
 
 // The canvas keeps drawing until the calendar has closed the sheet, not merely
 // until the plate itself is finished: the index ring is part of the drawing.
-export const DRAW_END = Math.max(
-  SCORE.plate.start + SCORE.plate.duration,
-  SCORE.index.start + SCORE.index.duration,
-);
+export const DRAW_END = Math.max(PLATE_END, SCORE.index.start + SCORE.index.duration);
 export const SCORE_DURATION = SCORE.note.start + SCORE.note.duration;
 
 // How far the advancing edge is feathered, as a multiple of the ring gap. A

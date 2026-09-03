@@ -70,6 +70,9 @@ button { font: inherit; color: inherit; }
 
 .graph-stage { position: absolute; top: 50%; left: 50%; width: clamp(760px, 68vmin, 920px); transform: translate(-50%, -50%); }
 .rings-canvas { --ring-ink: #4a4235; --ring-grain: #57503f; --ring-muted: #6b6454; --ring-mark: #585044; --ring-accent: #1e1b16; --ring-event-accent: #17130d; --ring-bark: #857c6b; display: block; width: 100%; aspect-ratio: 1; cursor: crosshair; touch-action: manipulation; }
+/* A crosshair over a plate that is still being drawn invites a click that
+   does nothing: the pointer is held off for the whole entrance. */
+.is-drawing .rings-canvas { cursor: default; }
 button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
 /* The plate is a disc, so the focus ring follows the rings rather than the canvas box.
    Every mark the renderer draws sits well inside the inscribed circle, so the clip shows nothing. */
@@ -186,7 +189,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 /* The outer ring is unfinished. One slow breath at the growing edge — the only
    motion on the page that is neither arrival nor commitment. */
 .growth-frontier { position: absolute; z-index: 3; width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; border-radius: 50%; background: var(--ink); pointer-events: none; }
-.is-plate .growth-frontier { animation: frontier-breath 4.2s ease-in-out infinite; }
+.is-grown .growth-frontier { animation: frontier-breath 4.2s ease-in-out infinite; }
 @keyframes frontier-breath { 0%, 100% { opacity: .22; transform: scale(.75); } 50% { opacity: .6; transform: scale(1.25); } }
 
 @media (max-width: 1000px) { .stage-credit { right: calc(max(2.4rem, env(safe-area-inset-right)) + 3.2rem); bottom: max(2.4rem, env(safe-area-inset-bottom)); left: auto; transform: none; } .selected-mark { bottom: max(4.6rem, calc(env(safe-area-inset-bottom) + 3.4rem)); } .stage-more { bottom: max(8.25rem, calc(env(safe-area-inset-bottom) + 7.25rem)); } }

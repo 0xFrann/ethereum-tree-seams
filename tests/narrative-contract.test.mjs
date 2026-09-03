@@ -47,7 +47,7 @@ test("builds a no-scroll viewport stage with centered graph and six edge regions
 });
 
 test("uses price observations rather than returns", () => {
-  assert.match(explorer, /className="price-range"/);
+  assert.match(explorer, /className="price-range readout-line"/);
   assert.match(explorer, /Volatility/);
   assert.match(explorer, /const volatilityPercent = averagePrice/);
   assert.match(explorer, /const volatilityLabel =/);

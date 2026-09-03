@@ -56,6 +56,7 @@ import {
   monthAtIndex,
   PLATE_RAMP,
   phase,
+  READOUT_STEP_MS,
   type ChainLink,
 } from "./eth-rings/motion";
 import { Odometer, MonthRoll, YearRoll } from "./eth-rings/Odometer";
@@ -92,6 +93,14 @@ type LoadState =
 type DetailsDialog = "events" | "data" | "method" | "key" | null;
 type TimelineEvent = { kind: "milestone"; record: Milestone };
 let marketDataRequest: Promise<MarketData> | null = null;
+
+/**
+ * Where a readout line falls in the chain. The step is the score's, not the
+ * stylesheet's: every beat on the page reads its timing from the one table,
+ * and a delay written in CSS is how the readout came to be a separate
+ * animation that merely happened to overlap the rest.
+ */
+const readoutStep = (line: number) => ({ animationDelay: `${line * READOUT_STEP_MS}ms` });
 
 function loadMarketData() {
   if (!marketDataRequest) {
@@ -757,10 +766,12 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   return (
     <section className={`explorer explorer-stage${rolling ? " is-drawing" : ""}${cues.plate ? " is-plate" : ""}${cues.grown ? " is-grown" : ""}${cues.readout ? " is-readout" : ""}${cues.note ? " is-note" : ""}`} aria-label="Ethereum annual rings explorer">
       <StageTitle data={data} annotate={cues.header} />
+      {/* The reading first, then the figures taken from it — the same order
+          the label opposite states its identity and then its provenance. */}
       <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
-        <p className="period-date"><MonthRoll month={selection.month} active={rollNumbers} /> <YearRoll years={archiveYears} year={selection.year} active={rollNumbers} /></p>
-        <p className="price-range">{priceLow === null || priceHigh === null ? "No market data" : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
-        <dl className="price-observations"><div><dt>Average</dt><dd>{averagePrice === null ? "—" : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div><dt>Volatility</dt><dd>{volatilityLabel === null ? "—" : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
+        <p className="period-date readout-line" style={readoutStep(0)}><MonthRoll month={selection.month} active={rollNumbers} /> <YearRoll years={archiveYears} year={selection.year} active={rollNumbers} /></p>
+        <p className="price-range readout-line" style={readoutStep(1)}>{priceLow === null || priceHigh === null ? "No market data" : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
+        <dl className="price-observations"><div className="readout-line" style={readoutStep(2)}><dt>Average</dt><dd>{averagePrice === null ? "—" : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div className="readout-line" style={readoutStep(3)}><dt>Volatility</dt><dd>{volatilityLabel === null ? "—" : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
       </section>
       {/* The plate takes no pointer input while it is being drawn. Running a
           cursor over a specimen that is still growing is not a reading being

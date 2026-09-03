@@ -55,7 +55,17 @@ button { font: inherit; color: inherit; }
 .stage-provenance div { display: grid; gap: .16rem; text-align: left; }
 .stage-provenance dt { margin: 0; color: var(--ink-faint); font-size: 11px; font-weight: 400; letter-spacing: .13em; line-height: 1.2; text-transform: uppercase; }
 .stage-provenance dd { margin: 0; min-height: 1.2em; font: 400 15px/1.2 var(--font-interface); letter-spacing: .01em; }
-.stage-price { top: max(2.4rem, env(safe-area-inset-top)); right: max(2.4rem, env(safe-area-inset-right)); width: min(18rem, 25vw); text-align: right; }
+.stage-price { --odo-strut: 1.32em; --odo-drop: -.48em; top: max(2.4rem, env(safe-area-inset-top)); right: max(2.4rem, env(safe-area-inset-right)); width: min(18rem, 25vw); text-align: right; }
+/* Every line that can carry a counter reserves a counter's box whether or not
+   one is in it. A counter is a cell tall and hangs below the baseline, so it
+   makes a taller line box than a sentence does — and the readout says "No
+   market data" until the growth front crosses into the priced years, so the
+   whole block used to drop five pixels at the moment the figures arrived.
+   The strut is the nominal cell; the pinned one differs by under a device
+   pixel, and the two ems are declared once, above, for both to read. */
+.period-date::before, .price-range::before, .price-observations dd::before {
+  content: ""; display: inline-block; width: 0; height: var(--odo-strut); vertical-align: var(--odo-drop);
+}
 .period-date { margin: 0; color: var(--ink); font: 400 clamp(1.5rem, 2.2vw, 2.2rem)/1.05 var(--font-interface); letter-spacing: .01em; }
 .price-range { margin: .45rem 0 0; color: var(--ink-soft); font: 400 19px/1.3 var(--font-interface); font-variant-numeric: tabular-nums; }
 .period-button { display: grid; width: 100%; padding: 0 0 .65rem; border: 0; background: transparent; cursor: pointer; text-align: inherit; }
@@ -186,7 +196,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    pixel at layout time and set it back on this element, which only inherits
    down if the slot does not declare it for itself. The em value is what that
    pinning rounds, and what stands if there is no layout to measure. */
-.odo, .odo-month { --odo-cell: 1.32em; display: inline-block; font-variant-numeric: tabular-nums; white-space: pre; vertical-align: -.48em; }
+.odo, .odo-month { --odo-cell: var(--odo-strut, 1.32em); display: inline-block; font-variant-numeric: tabular-nums; white-space: pre; vertical-align: var(--odo-drop, -.48em); }
 .odo-track { display: inline-block; }
 /* A cell is taller than the type it carries, or the mask shaves the descender
    off a month like Sep. `--odo-cell` is the travel unit for the strips.

@@ -28,7 +28,7 @@ const renderer = await read("eth-rings/renderer.ts");
 const shell = await read("NarrativeShell.tsx");
 const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-test("plays the page from one score, in the order the sheet is made", () => {
+test("plays the page from one score, in the order the sheet is made", async () => {
   const beats = Object.fromEntries(
     [...motion.matchAll(/(\w+): \{ start: (\d+), duration: (\d+) \}/g)]
       .map(([, name, start, duration]) => [name, { start: Number(start), duration: Number(duration) }]),
@@ -38,7 +38,16 @@ test("plays the page from one score, in the order the sheet is made", () => {
   // readout share the downbeat: the growth front opens so slowly that holding
   // them back reads as hesitation rather than as precedence.
   assert.ok(beats.header.start <= beats.plate.start, "the sheet is labelled no later than the specimen is mounted");
-  assert.equal(beats.plate.start, beats.header.start, "the plate opens on the header's downbeat");
+  // The specimen is named before it is drawn: the plate opens on the beat the
+  // label stops presenting and starts rattling, which is the two identity
+  // lines' own length and nothing else in the score. Derived here rather than
+  // matched, so the literal cannot drift from the strings it stands for.
+  const { TITLE_SPEED_MS, TITLE_HOLD_MS, chainDelays } = await importMotion();
+  const identity = [...explorer.matchAll(/title\("([^"]+)"(?:, TITLE_HOLD_MS \* ([\d.]+))?\)/g)]
+    .map(([, text, factor]) => ({ text, speed: TITLE_SPEED_MS, hold: TITLE_HOLD_MS * (factor ? Number(factor) : 1) }));
+  assert.equal(identity.length, 2, "the label presents itself in two lines before it rattles");
+  const named = chainDelays([...identity, { text: "", speed: 0, hold: 0 }]).at(-1);
+  assert.equal(beats.plate.start, named, "the specimen is named before it is drawn");
   // The readout keeps to the order: the sheet is labelled, and only then is
   // the instrument set on it, so the two upper corners are made one after the
   // other rather than at once.

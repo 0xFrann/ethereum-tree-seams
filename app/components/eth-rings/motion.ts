@@ -173,9 +173,10 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 //   plate    the specimen is drawn
 //   readout  the instrument is placed on the same downbeat, and the year it
 //            shows is the year the growth front is currently laying down
-//   index    the calendar is struck around the finished plate, and the month
-//            follows the pen from January round to the present
-//   wash     the plate dims to the month the reading landed on
+//   index    the calendar is struck around the finished plate, and a bare
+//            wedge turns with the pen from January round to the present
+//   wash     the reading lands: the wedge's month is brought up and the rest
+//            of the specimen dims away from it
 //   note     and only then is that reading annotated
 //
 // The readout does not wait for the specimen to be finished before it is
@@ -219,13 +220,28 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // is measured — so it is given a real pause: long enough for the finished
 // shape to be seen still, and for the reading to be seen resting on the last
 // year's January, before the first month is struck against it.
+//
+// Only two things move while the calendar is being drawn: the circle itself,
+// and a bare wedge turning with the pen. The reading proper — the month
+// brought up out of a wash that drops over everything else — waits for the
+// circle to close and lands as one movement.
+//
+// Taking the reading concurrently was tried and is worse in both ways it can
+// be. It reads as three animations at once rather than one: a circle drawing
+// itself, a wedge turning, and a wash creeping in over a specimen the eye is
+// still learning. And it is genuinely slow — restoring a segment out of the
+// wash means clipping and re-blitting the whole plate several times a frame,
+// every frame, so the sweep it was meant to accompany stutters. The wedge on
+// its own is sixty lines and a stroke.
 export const SCORE = {
   header: { start: 0, duration: 2230 },
   plate: { start: 0, duration: 5800 },
   readout: { start: 0, duration: 400 },
   index: { start: 6700, duration: 1300 },
-  wash: { start: 8180, duration: 620 },
-  note: { start: 8800, duration: 360 },
+  // On the calendar's last step, with no gap: the circle closes and the plate
+  // resolves into the reading in one movement.
+  wash: { start: 8000, duration: 520 },
+  note: { start: 8600, duration: 360 },
 } as const;
 
 // Where the specimen itself is finished, before the calendar closes the sheet.

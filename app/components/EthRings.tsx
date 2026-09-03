@@ -33,6 +33,7 @@ import {
   radiusAtStop,
   revealStops,
   settledGrainCount,
+  strokeMonthWedge,
   yearAtRadius,
   yearReach,
   type Geometry,
@@ -57,7 +58,7 @@ import {
   phase,
   type ChainLink,
 } from "./eth-rings/motion";
-import { Odometer, MonthRoll } from "./eth-rings/Odometer";
+import { Odometer, MonthRoll, YearRoll } from "./eth-rings/Odometer";
 import { TypeOn, WipeIn } from "./eth-rings/TypeOn";
 import { useReducedMotion } from "./eth-rings/use-motion";
 import { useStageOpen } from "./stage-gate";
@@ -255,14 +256,18 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   // a function of the geometry: rebuilt with it, never per frame.
   const revealPlanRef = useRef<RevealPlan | null>(null);
   const cacheRef = useRef<HTMLCanvasElement | null>(null);
+  const paletteRef = useRef<{ paper: string; ink: string; accent: string } | null>(null);
   const idleSelection = useMemo<Selection>(() => ({ year: data.years[latestYearIndex].year, month: latestMonth }), [data.years, latestMonth, latestYearIndex]);
-  // The month tape spans the whole archive so it can roll across a year
-  // boundary in the direction actually travelled. It has to start at the
-  // chronology origin, not at the first market year: a knot in the unpriced
-  // interval is selectable, and a tape that began in 2017 would scroll such a
-  // reading clean off the strip. It is also where the growth roll begins.
+  // The year strip is the record itself, one cell a year. It starts at the
+  // chronology origin rather than at the first market year: a knot in the
+  // unpriced interval is selectable, and a strip that began in 2017 would
+  // carry no cell to show such a reading on. It is also where the growth roll
+  // begins, on the pith.
   const firstArchiveYear = Number(data.chronology.origin.slice(0, 4));
-  const archiveYearCount = data.years.at(-1)!.year - firstArchiveYear + 1;
+  const archiveYears = useMemo(
+    () => Array.from({ length: data.years.at(-1)!.year - firstArchiveYear + 1 }, (_, index) => firstArchiveYear + index),
+    [data.years, firstArchiveYear],
+  );
   // The reading opens on the pith, where the front opens, and January is the
   // label the growing year carries until there is a calendar to move it.
   const [selection, setSelection] = useState<Selection>({ year: firstArchiveYear, month: 0 });
@@ -358,7 +363,37 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     if (market) setSelection(market);
   }, [marketForEvent]);
   const restoreIdleSelection = useCallback(() => selectMarket(idleSelection, false), [idleSelection, selectMarket]);
-  const paintSelection = useCallback(() => {
+  /**
+   * The wash and the selected month, laid over the artwork already on the
+   * canvas.
+   *
+   * `arrival` is how far the reading has come in: 1 for every ordinary paint,
+   * and a ramp only on the entrance's last step, where the wash and everything
+   * that counterweights it come up together.
+   */
+  const paintReading = useCallback((
+    context: CanvasRenderingContext2D,
+    geometry: Geometry,
+    cache: HTMLCanvasElement,
+    selected: Selection,
+    arrival: number,
+  ) => {
+    // The palette is read once with the geometry rather than per paint. Asking
+    // for a computed style is a style recalc, and this runs on every frame of
+    // the entrance and every frame of a scrub, immediately after React has
+    // touched the readout — exactly where a forced recalc costs most.
+    const colors = paletteRef.current;
+    if (!colors) return;
+    context.save();
+    context.fillStyle = colors.paper;
+    context.globalAlpha = washRef.current;
+    context.fillRect(0, 0, geometry.size, geometry.size);
+    context.restore();
+    drawSelection(context, data, geometry, selected, colors.accent, cache, colors.paper, arrival);
+    if (eventSelectionRef.current) drawEventSelection(context, geometry, eventSelectionRef.current, colors.ink);
+  }, [data]);
+
+  const paintSelection = useCallback((arrival = 1) => {
     const canvas = canvasRef.current;
     const geometry = geometryRef.current;
     const cache = cacheRef.current;
@@ -377,18 +412,8 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     context.setTransform(1, 0, 0, 1, 0, 0);
     context.drawImage(cache, 0, 0);
     context.restore();
-    const styles = getComputedStyle(canvas);
-    const paper = styles.getPropertyValue("--paper").trim();
-    context.save();
-    context.fillStyle = paper;
-    context.globalAlpha = washRef.current;
-    context.fillRect(0, 0, geometry.size, geometry.size);
-    context.restore();
-    const ringAccent = styles.getPropertyValue("--ring-accent").trim();
-    const ringInk = styles.getPropertyValue("--ring-ink").trim();
-    drawSelection(context, data, geometry, selectionRef.current, ringAccent, cache, paper);
-    if (eventSelectionRef.current) drawEventSelection(context, geometry, eventSelectionRef.current, ringInk);
-  }, [data]);
+    paintReading(context, geometry, cache, selectionRef.current, arrival);
+  }, [paintReading]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -416,6 +441,11 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       const styles = getComputedStyle(canvas);
       const colors = {
         ink: styles.getPropertyValue("--ring-ink").trim(), grain: styles.getPropertyValue("--ring-grain").trim(), muted: styles.getPropertyValue("--ring-muted").trim(), mark: styles.getPropertyValue("--ring-mark").trim(), bark: styles.getPropertyValue("--ring-bark").trim(),
+      };
+      paletteRef.current = {
+        paper: styles.getPropertyValue("--paper").trim(),
+        ink: colors.ink,
+        accent: styles.getPropertyValue("--ring-accent").trim(),
       };
       const geometry = buildGeometry(data, size);
       geometryRef.current = geometry;
@@ -512,21 +542,35 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             settled: settledGrainRef.current,
           });
 
-          // The readout is a caption on the drawing, not a separate animation
+          // The reading is a caption on the drawing, not a separate animation
           // about it. While the front travels it names the year being laid
           // down and holds that year's January; once the calendar is under
           // way it follows the pen round to the month the record reaches and
-          // stops there, where the record does.
+          // stops there, where the record does, while the pen carries on to
+          // December.
           //
           // A reader who has taken the plate over owns the reading from then
           // on, so the caption stops writing itself.
-          if (!interruptedRef.current) {
-            const reading: Selection = elapsed < SCORE.index.start
+          const reading: Selection = interruptedRef.current
+            ? selectionRef.current
+            : elapsed < SCORE.index.start
               ? { year: yearAtRadius(plan.years, state.radius), month: 0 }
               : { year: idleSelection.year, month: Math.min(idleSelection.month, monthAtIndex(state.index)) };
-            const current = selectionRef.current;
-            if (reading.year !== current.year || reading.month !== current.month) setSelection(reading);
-          }
+
+          // Nothing but the calendar and this wedge moves here. The reading
+          // proper waits for the circle to close: brought up alongside it, it
+          // reads as three animations at once, and restoring a segment out of
+          // the wash costs several clipped blits of the whole plate a frame —
+          // which is what makes the sweep it was meant to accompany stutter.
+          //
+          // The wedge is turned from `reading` rather than from the committed
+          // selection, which React has not applied yet: taking it off state
+          // would leave the drawn month a frame behind the drawn calendar.
+          const accent = paletteRef.current?.accent;
+          if (state.index > 0 && accent) strokeMonthWedge(built.context, geometry, reading.month, accent);
+
+          const current = selectionRef.current;
+          if (reading.year !== current.year || reading.month !== current.month) setSelection(reading);
           revealFrame = requestAnimationFrame(step);
           return;
         }
@@ -546,15 +590,16 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           allCues();
         };
 
-        // The reading arrived with the calendar, so what is left is the plate
-        // dimming to it. Easing the wash in rather than dropping it keeps the
-        // finished specimen from changing colour in a step.
+        // The circle has closed. The reading lands on that last step, in one
+        // movement: the wedge's month comes up and the rest of the specimen
+        // dims away from it, around the outline that has been turning with the
+        // pen since January.
         //
         // A reader who acts here wins outright: the reading stays where they
-        // put it, and the plate takes its wash at once rather than fading down
+        // put it, and the plate takes its wash at once rather than resolving
         // around a segment they did not choose. The score still plays on — the
-        // note is cued by the clock, not by the wash landing — or the rest of
-        // the sheet would never arrive.
+        // note is cued by the clock, not by the reading landing — or the rest
+        // of the sheet would never arrive.
         if (interruptedRef.current) {
           if (!interruptionPainted) {
             interruptionPainted = true;
@@ -563,8 +608,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
             paintSelection();
           }
         } else {
-          washRef.current = SELECTION_WASH * phase(elapsed, SCORE.wash.start, SCORE.wash.duration, easeInOutCubic);
-          paintSelection();
+          const arrival = phase(elapsed, SCORE.wash.start, SCORE.wash.duration, easeInOutCubic);
+          washRef.current = SELECTION_WASH * arrival;
+          paintSelection(arrival);
         }
 
         if (elapsed >= SCORE.note.start) {
@@ -608,7 +654,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       cancelAnimationFrame(frame);
       cancelAnimationFrame(revealFrame);
     };
-  }, [allCues, data, fireCue, idleSelection, paintSelection, reduced, stageOpen]);
+  }, [allCues, data, fireCue, idleSelection, paintReading, paintSelection, reduced, stageOpen]);
   useEffect(paintSelection, [paintSelection, selection, eventSelection]);
 
   const interactionAt = useCallback((clientX: number, clientY: number): Selection | null => {
@@ -620,6 +666,39 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     const y = clientY - rect.top;
     return hitTest(geometry, x, y);
   }, []);
+
+  /**
+   * A pointer position taken as a reading, at most once a frame.
+   *
+   * Pointer moves arrive faster than frames — a 1000Hz mouse fires a dozen or
+   * more between two paints — and each one used to hit-test the plate, run the
+   * whole readout through React and repaint the canvas underneath it. The
+   * reading can only change as fast as it can be drawn, so only the last
+   * position of a frame is worth answering; the rest are positions the cursor
+   * has already left.
+   */
+  const scrubPointRef = useRef<{ x: number; y: number } | null>(null);
+  const scrubFrameRef = useRef(0);
+  const scrub = useCallback((clientX: number, clientY: number) => {
+    scrubPointRef.current = { x: clientX, y: clientY };
+    if (scrubFrameRef.current) return;
+    scrubFrameRef.current = requestAnimationFrame(() => {
+      scrubFrameRef.current = 0;
+      const point = scrubPointRef.current;
+      if (!point) return;
+      const next = interactionAt(point.x, point.y);
+      if (next) selectMarket(next, false);
+      else restoreIdleSelection();
+    });
+  }, [interactionAt, restoreIdleSelection, selectMarket]);
+  // Leaving the plate and committing a selection both settle the reading
+  // themselves, and a queued move would land on top of them a frame later.
+  const endScrub = useCallback(() => {
+    cancelAnimationFrame(scrubFrameRef.current);
+    scrubFrameRef.current = 0;
+    scrubPointRef.current = null;
+  }, []);
+  useEffect(() => endScrub, [endScrub]);
 
   // Keyboard travel follows the same segments the pointer can reach: observed
   // months plus the unpriced months that carry a mark.
@@ -679,7 +758,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     <section className={`explorer explorer-stage${rolling ? " is-drawing" : ""}${cues.plate ? " is-plate" : ""}${cues.grown ? " is-grown" : ""}${cues.readout ? " is-readout" : ""}${cues.note ? " is-note" : ""}`} aria-label="Ethereum annual rings explorer">
       <StageTitle data={data} annotate={cues.header} />
       <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
-        <p className="period-date"><MonthRoll selection={selection} firstYear={firstArchiveYear} yearCount={archiveYearCount} active={rollNumbers} /> <Odometer value={String(selection.year)} active={rollNumbers} /></p>
+        <p className="period-date"><MonthRoll month={selection.month} active={rollNumbers} /> <YearRoll years={archiveYears} year={selection.year} active={rollNumbers} /></p>
         <p className="price-range">{priceLow === null || priceHigh === null ? "No market data" : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
         <dl className="price-observations"><div><dt>Average</dt><dd>{averagePrice === null ? "—" : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div><dt>Volatility</dt><dd>{volatilityLabel === null ? "—" : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
       </section>
@@ -691,9 +770,9 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         <canvas id="rings-explorer-entry" ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
           aria-label={`Interactive Ethereum annual rings. Selected ${periodLabel}; ${priceSummary} Use left and right arrows for months on this ring, up and down arrows for years.`}
           aria-describedby="rings-instructions rings-readout" onKeyDown={handleCanvasKeyDown}
-          onPointerLeave={(event) => { if (rolling || event.pointerType !== "mouse") return; restoreIdleSelection(); }}
-          onPointerMove={(event) => { if (rolling || event.pointerType !== "mouse") return; const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, false); else restoreIdleSelection(); }}
-          onPointerDown={(event) => { if (rolling) return; const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, true); }}>
+          onPointerLeave={(event) => { if (rolling || event.pointerType !== "mouse") return; endScrub(); restoreIdleSelection(); }}
+          onPointerMove={(event) => { if (rolling || event.pointerType !== "mouse") return; scrub(event.clientX, event.clientY); }}
+          onPointerDown={(event) => { if (rolling) return; endScrub(); const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, true); }}>
           Ethereum annual-ring market chart. Equivalent period and event controls are available around the chart.
         </canvas>
         <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot for its note.</p>

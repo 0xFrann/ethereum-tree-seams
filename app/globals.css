@@ -175,16 +175,59 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 /* Masking a strip makes its baseline the box's bottom edge rather than the
    type's, so the whole counter is shifted back onto the surrounding baseline
    once, here, instead of per character. */
-.odo, .odo-month { display: inline-block; font-variant-numeric: tabular-nums; white-space: pre; vertical-align: -.48em; }
+/* `--odo-cell` is the travel unit for the strips, and it is declared here, on
+   the counter, rather than on the slot: the strips pin it to a whole device
+   pixel at layout time and set it back on this element, which only inherits
+   down if the slot does not declare it for itself. The em value is what that
+   pinning rounds, and what stands if there is no layout to measure. */
+.odo, .odo-month { --odo-cell: 1.32em; display: inline-block; font-variant-numeric: tabular-nums; white-space: pre; vertical-align: -.48em; }
 .odo-track { display: inline-block; }
 /* A cell is taller than the type it carries, or the mask shaves the descender
-   off a month like Sep. `--odo-cell` is the travel unit for the strips. */
-.odo-slot { --odo-cell: 1.32em; display: inline-block; height: var(--odo-cell); overflow: hidden; }
+   off a month like Sep. `--odo-cell` is the travel unit for the strips.
+
+   The mask's own edges are faded out, so a cell arrives and leaves instead of
+   being sliced off by a rectangle. The two fades are not equal because type is
+   not centred in its box: with this cell and this face the ink runs from 25%
+   to 69% of the cell, or to 88% where a month carries a descender, so there is
+   a quarter of a cell of clear air above and only an eighth below. Each fade
+   takes the room it actually has, and asymmetry in a soft edge is invisible
+   where a descender clipped by its own mask would not be.
+
+   The ramp is eased rather than linear. A straight alpha ramp over five or six
+   pixels still reads as a band with an edge of its own, which is the thing
+   being got rid of. */
+.odo-slot {
+  --odo-fade-top: 22%;
+  --odo-fade-bottom: 11%;
+  --odo-mask: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, .1) calc(var(--odo-fade-top) * .25),
+    rgba(0, 0, 0, .5) calc(var(--odo-fade-top) * .5),
+    rgba(0, 0, 0, .9) calc(var(--odo-fade-top) * .75),
+    #000 var(--odo-fade-top),
+    #000 calc(100% - var(--odo-fade-bottom)),
+    rgba(0, 0, 0, .9) calc(100% - var(--odo-fade-bottom) * .75),
+    rgba(0, 0, 0, .5) calc(100% - var(--odo-fade-bottom) * .5),
+    rgba(0, 0, 0, .1) calc(100% - var(--odo-fade-bottom) * .25),
+    rgba(0, 0, 0, 0) 100%);
+  display: inline-block;
+  height: var(--odo-cell);
+  overflow: hidden;
+  -webkit-mask-image: var(--odo-mask);
+  mask-image: var(--odo-mask);
+}
+/* A slot that never turns has no cut to hide, and a currency sign reaches
+   higher than a figure does: fading it would only dim the type. */
+.odo-slot-fixed { -webkit-mask-image: none; mask-image: none; }
 .odo-slot-month { width: 3ch; }
-.odo-strip { display: block; transition: transform .42s cubic-bezier(.22, .68, .3, 1); }
+.odo-slot-year { width: 4ch; }
+/* No transition. The strips are driven a frame at a time from one spring, so a
+   reading arriving before the last one has landed is carried into rather than
+   restarted — a fixed transition per change cancelled itself during the
+   plate's closing rush and the counters stuttered where the drawing was
+   fastest. Tier 3 is the same mechanism with the reels landed on arrival. */
+.odo-strip { display: block; }
 .odo-cell { display: block; height: var(--odo-cell); line-height: var(--odo-cell); }
-/* Tier 3: while the pointer scrubs, the digits swap in place. */
-.odo-still .odo-strip, .odo-still.odo-month .odo-strip { transition: none; }
 
 /* The outer ring is unfinished. One slow breath at the growing edge — the only
    motion on the page that is neither arrival nor commitment. */

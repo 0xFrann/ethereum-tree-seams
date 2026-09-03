@@ -151,7 +151,13 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    here are gone: timing belongs in the score, not scattered across CSS, or the
    page arrives as several animations that merely happen to overlap. */
 .stage-price, .selected-mark, .stage-more, .stage-credit, .growth-frontier { opacity: 0; }
-.is-readout .stage-price { opacity: 1; transition: opacity .4s ease; }
+/* The readout arrives line by line rather than as one block, so that the two
+   upper corners of the sheet are both being made rather than one of them being
+   written while the other is simply already there. The lines carry the
+   entrance, so the block itself only stops being hidden; each line's own step
+   into the chain is set from the score, on the element. */
+.is-readout .stage-price { opacity: 1; }
+.is-readout .readout-line { animation: wipe-in .19s ease-out both; }
 .is-note .selected-mark { opacity: 1; transition: opacity .4s ease; }
 .is-note .stage-more { opacity: 1; transition: opacity .4s ease; }
 .is-note .stage-credit { opacity: 1; transition: opacity .4s ease; }
@@ -240,4 +246,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 @media (max-width: 719px), (max-height: 620px) { .explorer-stage { min-height: 30rem; }
 .explorer-stage::before { inset: max(.7rem, env(safe-area-inset-top)) max(.7rem, env(safe-area-inset-right)) max(.7rem, env(safe-area-inset-bottom)) max(.7rem, env(safe-area-inset-left)); } .stage-title { top: max(1.9rem, env(safe-area-inset-top)); left: max(1.9rem, env(safe-area-inset-left)); max-width: 20rem; } .stage-title p { font-size: 12px; } .stage-title span { font-size: 11px; } .stage-title h1 { padding-bottom: .5rem; font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance { gap: .45rem; margin-top: .8rem; } .stage-provenance div { gap: .1rem; } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { top: max(1.9rem, env(safe-area-inset-top)); right: max(1.9rem, env(safe-area-inset-right)); width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 15px; } .price-observations { gap: .65rem; margin-top: 1.2rem; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { bottom: max(4.1rem, calc(env(safe-area-inset-bottom) + 3rem)); left: max(1.9rem, env(safe-area-inset-left)); width: min(13rem, 48vw); min-height: 194px; padding-top: .5rem; } .selected-mark h2 + p { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 4; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { top: .4rem; width: 1.7rem; height: 1.7rem; } .stage-more { right: max(1.9rem, env(safe-area-inset-right)); bottom: max(4rem, calc(env(safe-area-inset-bottom) + 3rem)); gap: .1rem; } .stage-more button, .stage-credit { font-size: 11px; } .stage-credit { right: calc(max(1.9rem, env(safe-area-inset-right)) + 3.1rem); bottom: max(1.6rem, env(safe-area-inset-bottom)); } .year-tabs { grid-template-columns: repeat(4, 1fr); } .month-tabs { grid-template-columns: repeat(4, 1fr); } }
 @media (max-width: 390px), (max-height: 500px) { .stage-title span, .price-observations, .selected-mark .edge-label, .event-detail-line { display: none; } .selected-mark { width: 11rem; min-height: 176px; padding-top: 0; border-top: 0; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+/* The delay goes with the duration. A chain of arrivals whose steps survive
+   this would hold its later lines back for half a second and then snap them
+   in, which is the stagger without the motion that made it read. */
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-delay: .01ms !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }

@@ -171,8 +171,8 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 //
 //   header   the project introduces itself, then rattles off its provenance
 //   plate    the specimen is drawn
-//   readout  the instrument is placed on the same downbeat, and the year it
-//            shows is the year the growth front is currently laying down
+//   readout  the instrument is placed on the same downbeat, line by line, and
+//            the year it shows is the year the growth front is laying down
 //   index    the calendar is struck around the finished plate, and a bare
 //            wedge turns with the pen from January round to the present
 //   wash     the reading lands: the wedge's month is brought up and the rest
@@ -236,7 +236,9 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 export const SCORE = {
   header: { start: 0, duration: 2230 },
   plate: { start: 0, duration: 5800 },
-  readout: { start: 0, duration: 400 },
+  // Long enough for the instrument's four lines to be laid down one after
+  // another: READOUT_STEP_MS apart, plus the last line's own arrival.
+  readout: { start: 0, duration: 640 },
   index: { start: 6700, duration: 1300 },
   // On the calendar's last step, with no gap: the circle closes and the plate
   // resolves into the reading in one movement.
@@ -271,6 +273,17 @@ export const TITLE_HOLD_MS = 260;
 export const DETAIL_SPEED_MS = 11;
 export const DETAIL_HOLD_MS = 45;
 export const TYPE_SPEED_MS = 17;
+
+// The readout is laid down line by line on the same downbeat, so the sheet's
+// two upper corners arrive as one gesture rather than one of them being
+// written while the other is simply already there.
+//
+// It is not struck. Only annotations type on this page, and a reading is not
+// an annotation — a figure typing itself would also be at odds with the reel
+// it sits on, which is already winding up to it. Each line arrives instead,
+// the same way a committed note does, and the step is shorter than the arrival
+// so the lines cascade rather than queue.
+export const READOUT_STEP_MS = 150;
 
 export type ChainLink = { text: string; speed: number; hold: number };
 

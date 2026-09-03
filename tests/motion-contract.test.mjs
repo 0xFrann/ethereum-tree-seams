@@ -85,6 +85,11 @@ test("keeps every beat on the one clock", () => {
   // once that ring exists to grow from.
   assert.match(explorer, /if \(elapsed >= PLATE_END\) fireCue\("grown"\)/);
   assert.match(styles, /\.is-grown \.growth-frontier \{ animation: frontier-breath/);
+  // The readout's own chain is stepped from the score, on the element, not
+  // from a delay written into the stylesheet.
+  assert.match(motion, /export const READOUT_STEP_MS = 150/);
+  assert.match(explorer, /animationDelay: `\$\{line \* READOUT_STEP_MS\}ms`/);
+  assert.doesNotMatch(styles, /\.readout-line \{[^}]*animation-delay/);
   assert.doesNotMatch(styles, /\.is-plate \.growth-frontier/);
 });
 
@@ -539,6 +544,29 @@ test("pins the counter cell to a whole device pixel", () => {
   assert.match(odometer, /document\.fonts\?\.ready\.then\(schedulePin\)/);
   // Cleared in one pass and measured in the next, so the rig costs one reflow.
   assert.match(odometer, /for \(const counter of counters\) counter\.style\.removeProperty\("--odo-cell"\);/);
+});
+
+test("makes both upper corners of the sheet arrive rather than one of them", () => {
+  // The header was struck line by line while the readout opposite it faded in
+  // whole on the same downbeat, which read as the right-hand block having
+  // simply been there from the start.
+  assert.doesNotMatch(styles, /\.is-readout \.stage-price \{ opacity: 1; transition/);
+  assert.match(styles, /\.is-readout \.stage-price \{ opacity: 1; \}/);
+  assert.match(styles, /\.is-readout \.readout-line \{ animation: wipe-in/);
+  // Four lines: the reading, then the figures taken from it.
+  assert.equal([...explorer.matchAll(/className="[^"]*readout-line/g)].length, 4);
+  assert.match(explorer, /className="period-date readout-line" style=\{readoutStep\(0\)\}/);
+  assert.match(explorer, /style=\{readoutStep\(3\)\}/);
+  // The lines cascade rather than queue: the step is shorter than the arrival.
+  const step = Number(motion.match(/export const READOUT_STEP_MS = (\d+)/)[1]);
+  const arrival = Number(styles.match(/\.wipe-in \{ animation: wipe-in ([\d.]+)s/)[1]) * 1000;
+  assert.ok(step < arrival + 100, "a readout line begins before the one before it has settled");
+  // The beat is as long as the chain it documents.
+  const beats = beatsOf(motion);
+  assert.equal(beats.readout.duration, 3 * step + Math.round(arrival), "the readout beat must span its own chain");
+  // A stagger whose steps outlive the motion that made them read is just a
+  // delay, so reduced motion drops the delay with the duration.
+  assert.match(styles, /prefers-reduced-motion: reduce\) \{ \*[^}]*animation-delay: \.01ms !important/);
 });
 
 test("shows the unfinished outer ring as the one piece of ambient motion", () => {

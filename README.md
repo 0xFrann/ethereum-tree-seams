@@ -25,8 +25,8 @@ The browser renders a high-DPI Canvas specimen with deterministic event geometry
 Requires Node.js 22.13 or newer.
 
 ```bash
-npm ci
-npm run dev
+pnpm install --frozen-lockfile
+pnpm dev
 ```
 
 In another terminal, seed the local R2 cache through the scheduled handler:
@@ -40,7 +40,7 @@ Then open `http://localhost:3000`. Local R2 state is stored by Wrangler outside 
 Run every repository check with:
 
 ```bash
-npm run test:all
+pnpm run test:all
 ```
 
 ## Project structure

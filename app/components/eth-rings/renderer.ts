@@ -23,7 +23,6 @@ const EMPTY_GHOST_ALPHA_MAX = 0.48;
 const PRICE_RELIEF = 0.52;
 const MINIMUM_RING_WEIGHT = 0.65;
 const VOLUME_WIDTH_RANGE = 0.28;
-const VOLUME_TRANSITION_FRACTION = 0.12;
 const VOLUME_YEAR_BASELINE_MIN = 0.08;
 const VOLUME_YEAR_BASELINE_RANGE = 0.78;
 const VOLUME_LOCAL_CONTRAST = 0.7;
@@ -105,20 +104,48 @@ function interpolate(values: number[], position: number, cyclic: boolean) {
   );
 }
 
+/**
+ * The volume weight between two sampled observations.
+ *
+ * A ring is one line whose weight is modulated, not a chain of bands, so the
+ * nodes are joined by a curve that is always on its way somewhere. Holding
+ * each observation flat and snapping to the next made every ring a staircase:
+ * a year carries 48 volume nodes against 360 rendered samples, so a join over
+ * a tenth of the interval lands inside a single sample — the whole change of
+ * weight happening in one degree of arc, forty-eight times a ring. That reads
+ * as segments butted together, which is exactly what the drawing is not.
+ *
+ * The tangents are Catmull-Rom — the same curve the price relief is read
+ * with — limited the Fritsch–Carlson way so the stroke never overshoots a
+ * node it passes through. Unlimited tangents let a sharp month pull the line
+ * thinner than either neighbour, and a pinch in the ink reads as a gap in the
+ * record that the observations do not have.
+ */
 function interpolateVolumeBand(values: number[], position: number, cyclic: boolean) {
   const count = values.length;
-  const index = Math.floor(position);
-  const t = position - index;
-  const current = cyclic
-    ? values[(index + count) % count]
-    : values[Math.max(0, Math.min(count - 1, index))];
-  const next = cyclic
-    ? values[(index + 1 + count) % count]
-    : values[Math.max(0, Math.min(count - 1, index + 1))];
-  // Keep each sampled observation legible as a short band. The last portion
-  // joins directly into the next value without falling toward a rest width.
-  const join = Math.max(0, Math.min(1, (t - (1 - VOLUME_TRANSITION_FRACTION)) / VOLUME_TRANSITION_FRACTION));
-  return current + (next - current) * join;
+  const at = (offset: number) => {
+    const target = Math.floor(position) + offset;
+    return cyclic
+      ? values[((target % count) + count) % count]
+      : values[Math.max(0, Math.min(count - 1, target))];
+  };
+  const t = position - Math.floor(position);
+  const [previous, current, next, following] = [at(-1), at(0), at(1), at(2)];
+  const slope = next - current;
+  // Tangents are in units of one node interval, and a tangent steeper than
+  // three times the span it crosses is what lets a cubic double back.
+  const limit = (tangent: number) =>
+    slope === 0 ? 0 : Math.max(0, Math.min(3, tangent / slope)) * slope;
+  const entering = limit((next - previous) / 2);
+  const leaving = limit((following - current) / 2);
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return (
+    (2 * t3 - 3 * t2 + 1) * current +
+    (t3 - 2 * t2 + t) * entering +
+    (-2 * t3 + 3 * t2) * next +
+    (t3 - t2) * leaving
+  );
 }
 
 function traceContour(
@@ -334,6 +361,13 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
       const earlier = year.months.filter((record) => record.month < month).at(-1);
       return earlier?.volumeWeight ?? year.months[0]?.volumeWeight ?? 0;
     };
+    // New cache records provide four daily-volume nodes per month. Legacy
+    // records retain the monthly-node fallback until the next refresh; both
+    // are read through the same curve, so a ring's weight is continuous
+    // whichever the cache happens to hold. The fallback is carried out to a
+    // full twelve so a partial year's nodes still sit on their own months.
+    const monthlyWeights = Array.from({ length: MONTHS.length }, (_, month) => volumeWeightAt(month));
+    const volumeNodes = year.volumeShape?.length ? year.volumeShape : monthlyWeights;
     const volumeValues = year.volumeShape?.length
       ? year.volumeShape
       : year.months.map((record) => record.volumeWeight);
@@ -351,19 +385,9 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
     const widths = Array.from({ length: SAMPLE_COUNT }, (_, index) => {
       const observedSamples = Math.max(2, activeSamples - startSample);
       const shapePosition = cyclic
-        ? (index / SAMPLE_COUNT) * (year.volumeShape?.length ?? 0)
-        : (Math.min(index, activeSamples - 1) - startSample) / Math.max(1, observedSamples - 1) * Math.max(0, (year.volumeShape?.length ?? 1) - 1);
-      const monthlyPosition = (index / SAMPLE_COUNT) * 12;
-      const monthlyIndex = Math.floor(monthlyPosition);
-      const monthlyProgress = monthlyPosition - monthlyIndex;
-      const current = volumeWeightAt(monthlyIndex);
-      const nextMonth = monthlyIndex === 11 ? (cyclic ? 0 : 11) : monthlyIndex + 1;
-      const next = volumeWeightAt(nextMonth);
-      // New cache records provide four daily-volume nodes per month. Legacy
-      // records retain the monthly-node fallback until the next refresh.
-      const volumeWeight = year.volumeShape?.length
-        ? interpolateVolumeBand(year.volumeShape, shapePosition, cyclic)
-        : current + (next - current) * monthlyProgress;
+        ? (index / SAMPLE_COUNT) * volumeNodes.length
+        : (Math.min(index, activeSamples - 1) - startSample) / Math.max(1, observedSamples - 1) * Math.max(0, volumeNodes.length - 1);
+      const volumeWeight = interpolateVolumeBand(volumeNodes, shapePosition, cyclic);
       return rest + visualVolumeWeight(volumeWeight) * gap * VOLUME_WIDTH_RANGE;
     });
     // Every succeeding year starts from the actual previous contour. This is

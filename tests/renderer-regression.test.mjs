@@ -15,9 +15,8 @@ test("locks the recovered additive annual-ring construction and continuous volum
   assert.match(source, /const volumeWeightAt = \(month: number\)/);
   assert.match(source, /function interpolateVolumeBand/);
   assert.match(source, /year\.volumeShape\?\.length/);
-  assert.match(source, /interpolateVolumeBand\(year\.volumeShape, shapePosition, cyclic\)/);
+  assert.match(source, /interpolateVolumeBand\(volumeNodes, shapePosition, cyclic\)/);
   assert.match(source, /const VOLUME_WIDTH_RANGE = 0\.28/);
-  assert.match(source, /const VOLUME_TRANSITION_FRACTION = 0\.12/);
   assert.match(source, /const VOLUME_YEAR_BASELINE_MIN = 0\.08/);
   assert.match(source, /const VOLUME_YEAR_BASELINE_RANGE = 0\.78/);
   assert.match(source, /const VOLUME_LOCAL_CONTRAST = 0\.7/);
@@ -62,14 +61,25 @@ test("a partial first year carries its full contour outward without colliding wi
 test("connects four observed volume nodes per month without a boundary trough", async () => {
   const source = await readFile(rendererUrl, "utf8");
 
-  assert.match(source, /const current = volumeWeightAt\(monthlyIndex\)/);
-  assert.match(source, /const next = volumeWeightAt\(nextMonth\)/);
+  assert.match(source, /const monthlyWeights = Array\.from\(\{ length: MONTHS\.length \}, \(_, month\) => volumeWeightAt\(month\)\)/);
+  assert.match(source, /const volumeNodes = year\.volumeShape\?\.length \? year\.volumeShape : monthlyWeights/);
   assert.match(source, /const shapePosition = cyclic/);
   assert.match(source, /New cache records provide four daily-volume nodes per month/);
-  assert.match(source, /Keep each sampled observation legible as a short band/);
   assert.match(source, /high-volume years stay visibly heavier/);
   assert.match(source, /return rest \+ visualVolumeWeight\(volumeWeight\) \* gap \* VOLUME_WIDTH_RANGE/);
   assert.doesNotMatch(source, /Math\.sin\(Math\.PI \* \(monthPosition/);
+});
+
+test("modulates ring weight as one continuous line rather than stepping between bands", async () => {
+  const source = await readFile(rendererUrl, "utf8");
+
+  // The nodes are joined by a limited cubic, never held flat and snapped: a
+  // held band changes weight inside a single rendered sample, which reads as
+  // segments butted together instead of a line that thickens.
+  assert.doesNotMatch(source, /VOLUME_TRANSITION_FRACTION/);
+  assert.match(source, /const entering = limit\(\(next - previous\) \/ 2\)/);
+  assert.match(source, /const leaving = limit\(\(following - current\) \/ 2\)/);
+  assert.match(source, /Math\.max\(0, Math\.min\(3, tangent \/ slope\)\) \* slope/);
 });
 
 test("does not fade observed price contours into the baseline at data boundaries", async () => {

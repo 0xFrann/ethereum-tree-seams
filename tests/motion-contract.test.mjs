@@ -512,7 +512,7 @@ test("gives the counter back the type that the readout's span rule overrides", (
   // is declared on the counter, not the slot: the strips pin it to a whole
   // device pixel and set it back there, and a slot declaring it for itself
   // would shadow that.
-  assert.match(styles, /\.odo, \.odo-month \{ --odo-cell: 1\.32em/);
+  assert.match(styles, /\.odo, \.odo-month \{ --odo-cell: var\(--odo-strut, 1\.32em\)/);
   assert.doesNotMatch(styles, /\.odo-slot \{\s*--odo-cell/);
   assert.match(odometer, /translate3d\(0, calc\(var\(--odo-cell\)/);
 });
@@ -571,6 +571,20 @@ test("makes both upper corners of the sheet arrive rather than one of them", () 
   // A stagger whose steps outlive the motion that made them read is just a
   // delay, so reduced motion drops the delay with the duration.
   assert.match(styles, /prefers-reduced-motion: reduce\) \{ \*[^}]*animation-delay: \.01ms !important/);
+});
+
+test("holds the readout's height whether or not a line carries a counter", () => {
+  // A counter is a cell tall and hangs below the baseline, so it makes a
+  // taller line box than a sentence: the readout reads "No market data" until
+  // the front crosses into the priced years, and the block used to drop five
+  // pixels at the moment the figures arrived.
+  assert.match(styles, /\.stage-price \{ --odo-strut: 1\.32em; --odo-drop: -\.48em;/);
+  assert.match(styles, /\.period-date::before, \.price-range::before, \.price-observations dd::before \{/);
+  assert.match(styles, /content: ""; display: inline-block; width: 0; height: var\(--odo-strut\); vertical-align: var\(--odo-drop\);/);
+  // The strut and the counter read the same two ems, declared once.
+  assert.match(styles, /vertical-align: var\(--odo-drop, -\.48em\)/);
+  assert.equal([...styles.matchAll(/--odo-strut: /g)].length, 1);
+  assert.equal([...styles.matchAll(/--odo-drop: /g)].length, 1);
 });
 
 test("shows the unfinished outer ring as the one piece of ambient motion", () => {

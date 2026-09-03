@@ -39,9 +39,13 @@ test("plays the page from one score, in the order the sheet is made", () => {
   // them back reads as hesitation rather than as precedence.
   assert.ok(beats.header.start <= beats.plate.start, "the sheet is labelled no later than the specimen is mounted");
   assert.equal(beats.plate.start, beats.header.start, "the plate opens on the header's downbeat");
-  // The readout is a caption on the growth, not a second animation about it,
-  // so it opens with the front rather than after the specimen is finished.
-  assert.equal(beats.readout.start, beats.plate.start, "the reading opens on the plate's downbeat");
+  // The readout keeps to the order: the sheet is labelled, and only then is
+  // the instrument set on it, so the two upper corners are made one after the
+  // other rather than at once.
+  assert.ok(beats.readout.start >= beats.header.start + beats.header.duration, "the label is finished before the instrument is set on it");
+  // It is still a caption on the growth, not a second animation about it: it
+  // arrives while the front is on its first ring, not after the plate is done.
+  assert.ok(beats.readout.start + beats.readout.duration < beats.plate.start + beats.plate.duration, "the reading is placed while the specimen is still growing");
   // The reading lands on the calendar's last step, with no gap: the circle
   // closes and the plate resolves into the reading in one movement.
   assert.equal(beats.wash.start, beats.index.start + beats.index.duration, "the reading lands as the circle closes");

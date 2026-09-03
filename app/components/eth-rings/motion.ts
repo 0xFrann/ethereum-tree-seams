@@ -171,8 +171,9 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 //
 //   header   the project introduces itself, then rattles off its provenance
 //   plate    the specimen is drawn
-//   readout  the instrument is placed on the same downbeat, line by line, and
-//            the year it shows is the year the growth front is laying down
+//   readout  the label finished, the instrument is set on the specimen line
+//            by line, and the year it shows is the year the front is laying
+//            down
 //   index    the calendar is struck around the finished plate, and a bare
 //            wedge turns with the pen from January round to the present
 //   wash     the reading lands: the wedge's month is brought up and the rest
@@ -203,17 +204,29 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // that the rush lands at exactly that: shorten it and lines start sharing
 // frames, and the layers turn back into blocks.
 //
-// The plate, the header and the readout open on the same beat. The front
-// starts so slowly that its first moment of travel shows almost nothing, so it
-// costs the header no attention to share the downbeat with it: the first line
-// of the label is struck and the pith is set at once, and by the time the
-// provenance dates are rattling past the specimen's first contours are already
-// under them.
+// The plate and the header open on the same beat. The front starts so slowly
+// that its first moment of travel shows almost nothing, so it costs the header
+// no attention to share the downbeat with it: the first line of the label is
+// struck and the pith is set at once, and by the time the provenance dates are
+// rattling past the specimen's first contours are already under them.
 //
 // This is the one place the sheet is not made strictly in order. Labelling
 // first is the rule everywhere else in this score, but the plate's opening is
 // slow enough that starting it a beat late reads as the page hesitating rather
 // than as the label taking precedence.
+//
+// The readout does keep to that rule. It waits for the label to finish and is
+// then laid down line by line, so the sheet's two upper corners are made one
+// after the other rather than at once: the specimen is named, then the
+// instrument is set on it. Sharing the downbeat put a block of figures beside
+// a header that was still being written, and two corners being written at
+// the same time is a page with no order to read it in — worse, the corner
+// that finished first was the one that had not been struck at all.
+//
+// Waiting costs the caption nothing. The front is still on its first ring at
+// that point and does not reach its second year for another three hundred
+// milliseconds, so the instrument is placed, and only then does the reading
+// under it begin to move.
 //
 // The calendar waits longest. The plate ends in a rush and a settling of
 // weight, and the calendar is a new idea — the specimen is finished, now it
@@ -236,9 +249,10 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 export const SCORE = {
   header: { start: 0, duration: 2230 },
   plate: { start: 0, duration: 5800 },
-  // Long enough for the instrument's four lines to be laid down one after
-  // another: READOUT_STEP_MS apart, plus the last line's own arrival.
-  readout: { start: 0, duration: 640 },
+  // On the header's last beat, so the label is finished before the instrument
+  // is set on it. Long enough for the instrument's four lines to be laid down
+  // one after another: READOUT_STEP_MS apart, plus the last line's arrival.
+  readout: { start: 2230, duration: 640 },
   index: { start: 6700, duration: 1300 },
   // On the calendar's last step, with no gap: the circle closes and the plate
   // resolves into the reading in one movement.

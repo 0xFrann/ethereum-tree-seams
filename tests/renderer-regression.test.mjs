@@ -39,8 +39,11 @@ test("retains the recovered year-end ease, closed bark, outlined month guide, an
   assert.match(source, /context\.fill\("evenodd"\)/);
   assert.match(source, /return radius \+ gap \* \(0\.69 \+ coarse \+ chip \+ spike \+ notch\)/);
   assert.match(source, /function strokeMonthWedge/);
-  assert.match(source, /const innerBoundary = geometry\.yearBands\[0\]\?\.innerBoundary \?\? band\.innerBoundary/);
-  assert.match(source, /traceMonthWedge\(context, innerBoundary, geometry\.bark, selection\.month, geometry\.center\)/);
+  // The wedge is addressed by month rather than by selection: it turns with
+  // the calendar's pen during the entrance, before there is a reading for it
+  // to belong to.
+  assert.match(source, /const innerBoundary = geometry\.yearBands\[0\]\?\.innerBoundary;/);
+  assert.match(source, /traceMonthWedge\(context, innerBoundary, geometry\.bark, month, geometry\.center\)/);
   assert.match(source, /context\.globalAlpha = 0\.22/);
   assert.match(source, /traceVariableContour\(context, selectedRing, geometry\.center, start, end\);/);
   assert.match(source, /context\.clip\(\)/);

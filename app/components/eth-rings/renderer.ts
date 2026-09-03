@@ -587,17 +587,27 @@ function traceMonthWedge(
   context.closePath();
 }
 
-function strokeMonthWedge(
+/**
+ * The wedge outline: one month of the plate, pith to bark.
+ *
+ * It is the whole of the reading while the calendar is being drawn — a bare
+ * figure turning with the pen — and the frame around it once the reading has
+ * landed. Sixty lines and a stroke, so it can be redrawn every frame of the
+ * sweep without costing the circle its smoothness.
+ *
+ * It takes a month rather than a selection because during the sweep there is
+ * no selection yet: the wedge is following the calendar, not a reading.
+ */
+export function strokeMonthWedge(
   context: CanvasRenderingContext2D,
   geometry: Geometry,
-  selection: Selection,
+  month: number,
   color: string,
 ) {
-  const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
-  if (!band) return;
-  const innerBoundary = geometry.yearBands[0]?.innerBoundary ?? band.innerBoundary;
+  const innerBoundary = geometry.yearBands[0]?.innerBoundary;
+  if (!innerBoundary) return;
   context.save();
-  traceMonthWedge(context, innerBoundary, geometry.bark, selection.month, geometry.center);
+  traceMonthWedge(context, innerBoundary, geometry.bark, month, geometry.center);
   context.strokeStyle = color;
   context.globalAlpha = 0.22;
   context.lineWidth = Math.max(0.9, geometry.size * 0.0013);
@@ -1135,6 +1145,21 @@ export function growthFrontier(geometry: Geometry) {
   return polar(geometry.center, ring.radii[sample], sample);
 }
 
+/**
+ * The reading: the plate dimmed to one month, with that month brought back up
+ * out of the wash at full contrast.
+ *
+ * `arrival` is how far the reading has come in — 1 for any ordinary paint, and
+ * a ramp only while the entrance is landing it. Everything here is a
+ * counterweight to the wash the caller has laid down, so all of it scales
+ * together: dim the plate half way and the segment is restored half way, and
+ * the reading is correct at every point of the movement rather than only at
+ * the end of it.
+ *
+ * The wedge outline is the exception. It has been turning with the calendar's
+ * pen since January was struck, and the reading landing around it must not
+ * make it flicker, so it is drawn at its own weight throughout.
+ */
 export function drawSelection(
   context: CanvasRenderingContext2D,
   _data: MarketData,
@@ -1143,6 +1168,7 @@ export function drawSelection(
   color: string,
   source: CanvasImageSource,
   paper: string,
+  arrival = 1,
 ) {
   const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
   if (!band) return;
@@ -1162,7 +1188,7 @@ export function drawSelection(
     traceMonthWedge(context, wedgeInner, geometry.bark, selection.month, geometry.center);
     context.clip();
     context.fillStyle = paper;
-    context.globalAlpha = 0.2;
+    context.globalAlpha = 0.2 * arrival;
     context.fillRect(0, 0, geometry.size, geometry.size);
     context.restore();
   }
@@ -1181,17 +1207,17 @@ export function drawSelection(
   traceVariableContour(context, selectedRing, geometry.center, start, end);
   context.clip();
   context.drawImage(source, 0, 0, geometry.size, geometry.size);
-  context.globalAlpha = 0.55;
+  context.globalAlpha = 0.55 * arrival;
   context.drawImage(source, 0, 0, geometry.size, geometry.size);
   context.restore();
-  strokeMonthWedge(context, geometry, selection, color);
+  strokeMonthWedge(context, geometry, selection.month, color);
 
   // The reading is taken at the perimeter, where the month labels are, so the
   // index ring carries a solid accent arc across the selected month.
   const wedgeStart = -Math.PI / 2 + (selection.month / 12) * TAU;
   context.save();
   context.strokeStyle = color;
-  context.globalAlpha = 1;
+  context.globalAlpha = arrival;
   context.lineWidth = Math.max(1.4, geometry.size * 0.0022);
   context.beginPath();
   context.arc(geometry.center, geometry.center, geometry.indexRadius, wedgeStart, wedgeStart + TAU / 12);
@@ -1209,7 +1235,7 @@ export function drawSelection(
       tracePointPath(context, knot.path, true);
       context.clip();
       context.drawImage(source, 0, 0, geometry.size, geometry.size);
-      context.globalAlpha = 0.55;
+      context.globalAlpha = 0.55 * arrival;
       context.drawImage(source, 0, 0, geometry.size, geometry.size);
       context.restore();
     });
@@ -1221,6 +1247,7 @@ export function drawSelection(
   const label = MONTHS[selection.month].toUpperCase();
   context.save();
   context.fillStyle = color;
+  context.globalAlpha = arrival;
   context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
   context.textAlign = "center";
   context.textBaseline = "middle";

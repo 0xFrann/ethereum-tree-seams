@@ -42,7 +42,9 @@ test("plays the page from one score, in the order the sheet is made", () => {
   // The readout is a caption on the growth, not a second animation about it,
   // so it opens with the front rather than after the specimen is finished.
   assert.equal(beats.readout.start, beats.plate.start, "the reading opens on the plate's downbeat");
-  assert.ok(beats.index.start < beats.wash.start, "the calendar moves the reading before the plate dims to it");
+  // The reading lands on the calendar's last step, with no gap: the circle
+  // closes and the plate resolves into the reading in one movement.
+  assert.equal(beats.wash.start, beats.index.start + beats.index.duration, "the reading lands as the circle closes");
   assert.ok(beats.wash.start < beats.note.start, "the note annotates a reading already taken");
   // The note's content is a function of the selected month, so it must not
   // exist while the calendar is still moving the reading through months.
@@ -61,8 +63,8 @@ test("plays the page from one score, in the order the sheet is made", () => {
   // The growth is the centrepiece and is paced to be watched.
   const longest = Object.entries(beats).sort((a, b) => b[1].duration - a[1].duration)[0][0];
   assert.equal(longest, "plate", "the plate must be the longest beat on the page");
-  // A pause between the calendar landing and the plate dimming to it.
-  assert.ok(beats.wash.start > beats.index.start + beats.index.duration, "the wash waits for the calendar to land");
+  // A breath between the sheet being finished and being annotated.
+  assert.ok(beats.note.start > beats.index.start + beats.index.duration, "the finished sheet is held before the note");
   // Ring weight is a property of the front, not a beat of its own.
   assert.doesNotMatch(motion, /weight: \{ start:/);
 });
@@ -218,6 +220,8 @@ test("strikes January, holds it, then closes the circle in one sweep", async () 
   // January is presented and held before anything else happens.
   assert.ok(INDEX_BEAT.january >= 300, "January is presented, not flashed");
   assert.ok(INDEX_BEAT.hold >= 150, "and held");
+  // Nothing but the circle and the wedge moves until the circle has closed.
+  assert.equal(SCORE.wash.start, SCORE.index.start + INDEX_DURATION);
   const t = (ms) => ms / INDEX_DURATION;
   assert.equal(indexSchedule(t(INDEX_BEAT.january)), 1 / 12);
   assert.equal(indexSchedule(t(INDEX_BEAT.january + INDEX_BEAT.hold / 2)), 1 / 12);
@@ -294,7 +298,7 @@ test("rolls the reading with the drawing rather than after it", () => {
   // The finished plate used to appear and then snap: a wash dropped over
   // everything in the same instant the month landed. It eases in instead.
   assert.match(motion, /wash: \{ start: \d+, duration: \d+ \}/);
-  assert.match(explorer, /washRef\.current = SELECTION_WASH \* phase\(elapsed, SCORE\.wash\.start, SCORE\.wash\.duration, easeInOutCubic\)/);
+  assert.match(explorer, /washRef\.current = SELECTION_WASH \* arrival/);
   assert.match(explorer, /context\.globalAlpha = washRef\.current/);
   assert.doesNotMatch(explorer, /context\.globalAlpha = 0\.3/);
   // The roll must not narrate itself to a screen reader month by month: it
@@ -305,12 +309,47 @@ test("rolls the reading with the drawing rather than after it", () => {
   // pulling the reading back off what they just chose.
   assert.match(explorer, /if \(interruptedRef\.current\) \{/);
   assert.match(explorer, /interruptedRef\.current = true;/);
-  assert.match(explorer, /if \(!interruptedRef\.current\) \{\s*\n\s*const reading: Selection/);
+  assert.match(explorer, /const reading: Selection = interruptedRef\.current\s*\n\s*\? selectionRef\.current/);
   // But the rest of the sheet still arrives: the note is cued by the clock,
   // so an interrupted entrance must play the score out rather than return
   // from the loop and leave it blank.
   assert.match(explorer, /if \(interruptedRef\.current\) allCues\(\); else finish\(\);/);
   assert.doesNotMatch(explorer, /if \(interruptedRef\.current\) \{[^}]*return;/);
+});
+
+test("turns a bare wedge with the pen, and takes the reading once it lands", () => {
+  // While the calendar is drawn, only the calendar and the wedge move. Taking
+  // the reading alongside them read as three animations at once, and cost the
+  // sweep its smoothness: restoring a segment out of the wash means clipping
+  // and re-blitting the whole plate several times a frame, every frame.
+  assert.match(renderer, /export function strokeMonthWedge\(/);
+  assert.match(explorer, /if \(state\.index > 0 && accent\) strokeMonthWedge\(built\.context, geometry, reading\.month, accent\)/);
+  assert.doesNotMatch(explorer, /paintReading\([^)]*state\.index\)/);
+  // The wedge takes a month, not a selection: during the sweep it is following
+  // the calendar, and there is no reading yet for it to be following.
+  assert.match(renderer, /export function strokeMonthWedge\(\s*\n\s*context: CanvasRenderingContext2D,\s*\n\s*geometry: Geometry,\s*\n\s*month: number,/);
+  // And it is turned from the frame's own reading, not from committed state:
+  // React has not applied the latter yet, and that lag is a frame of daylight
+  // between the drawn month and the drawn calendar.
+  assert.match(explorer, /const reading: Selection = interruptedRef\.current/);
+  // It stops where the record does; the pen carries on to December.
+  assert.match(explorer, /month: Math\.min\(idleSelection\.month, monthAtIndex\(state\.index\)\)/);
+
+  // Then the reading lands as one movement on the calendar's last step. The
+  // wash and everything that counterweights it come up together, so the plate
+  // is correct at every point of the movement, not only at the end of it.
+  assert.match(explorer, /const arrival = phase\(elapsed, SCORE\.wash\.start, SCORE\.wash\.duration, easeInOutCubic\)/);
+  assert.match(explorer, /paintSelection\(arrival\)/);
+  assert.match(explorer, /const paintSelection = useCallback\(\(arrival = 1\) =>/);
+  assert.match(renderer, /context\.globalAlpha = 0\.2 \* arrival/);
+  assert.match(renderer, /context\.globalAlpha = 0\.55 \* arrival/);
+  assert.match(renderer, /context\.globalAlpha = arrival;\s*\n\s*context\.lineWidth = Math\.max\(1\.4/);
+  // The outline is the exception: it has been turning since January, and the
+  // reading landing around it must not make it flicker.
+  assert.match(renderer, /context\.globalAlpha = 0\.22;/);
+  // The pen clamp went with the concurrent reading: there is no calendar still
+  // being drawn by the time the accent arc exists.
+  assert.doesNotMatch(renderer, /indexProgress/);
 });
 
 test("holds the pointer off the plate while it is being drawn", () => {
@@ -354,10 +393,33 @@ test("reserves motion for arrival and commitment, never for a hover scrub", () =
   assert.match(explorer, /<WipeIn wipeKey=\{String\(commitSeq\)\}>/);
   // Scrubbing must not re-strike the note.
   assert.match(explorer, /firstPass=\{!noteSettled\}/);
-  // The odometer keeps one stable DOM and switches the transition off instead
-  // of swapping renderings, or a commit would have nothing to roll from.
-  assert.match(odometer, /odo-still/);
-  assert.match(styles, /\.odo-still \.odo-strip[^}]*transition: none/);
+  // Tier 3 is the same reels with nowhere to travel: they land on arrival
+  // rather than switching to a second rendering, or a commit would have
+  // nothing to roll from.
+  assert.match(odometer, /if \(still\) land\(reel\);/);
+  assert.match(odometer, /useReel\(digit, DIGITS\.length, still, 0\)/);
+});
+
+test("answers a scrub once a frame rather than once a pointer event", () => {
+  // A high-rate mouse fires many moves between two paints, and each one hit
+  // tests the plate, runs the readout through React and repaints the canvas.
+  // Only the last position of a frame is still under the cursor.
+  assert.match(explorer, /const scrub = useCallback\(\(clientX: number, clientY: number\) => \{/);
+  assert.match(explorer, /if \(scrubFrameRef\.current\) return;/);
+  assert.match(explorer, /scrubFrameRef\.current = requestAnimationFrame\(/);
+  assert.match(explorer, /onPointerMove=\{\(event\) => \{[^}]*scrub\(event\.clientX, event\.clientY\); \}\}/);
+  // Leaving the plate and committing both settle the reading themselves.
+  assert.match(explorer, /onPointerLeave=\{\(event\) => \{[^}]*endScrub\(\); restoreIdleSelection\(\); \}\}/);
+  assert.match(explorer, /onPointerDown=\{\(event\) => \{ if \(rolling\) return; endScrub\(\);/);
+});
+
+test("reads the palette with the geometry, not on every painted frame", () => {
+  // Asking for a computed style is a style recalc, and the reading is painted
+  // every frame of the entrance and every frame of a scrub.
+  assert.match(explorer, /const colors = paletteRef\.current;/);
+  assert.match(explorer, /paletteRef\.current = \{\s*\n\s*paper: styles\.getPropertyValue\("--paper"\)\.trim\(\),/);
+  const reading = explorer.slice(explorer.indexOf("const paintReading = useCallback("), explorer.indexOf("const paintSelection = useCallback("));
+  assert.doesNotMatch(reading, /getComputedStyle/);
 });
 
 test("guards every timer and frame driven animation behind reduced motion", () => {
@@ -380,9 +442,12 @@ test("waits for the introduction to clear before spending the choreography", () 
 test("accumulates the reveal clock so a background tab does not spend it unseen", () => {
   assert.match(explorer, /revealElapsedRef\.current \+= Math\.min\(now - last, 64\)/);
   assert.doesNotMatch(explorer, /const elapsed = now - begin/);
-  // An un-wound counter shows zeros, which is wrong data rather than still
-  // data, so the real reading has to land without a frame.
-  assert.match(odometer, /const backstop = window\.setTimeout\(\(\) => setWound\(true\), 250\)/);
+  // A counter still winding up shows zeros, which is wrong data rather than
+  // merely still data. A background tab issues no frames at all, so the reels
+  // measure the gap and land on the real reading instead of rolling through
+  // an interval nobody watched.
+  assert.match(odometer, /const STALL_SECONDS = 0\.25/);
+  assert.match(odometer, /if \(seconds > STALL_SECONDS\) land\(reel\)/);
 });
 
 test("hands the finished plate back to the ordinary paint path", () => {
@@ -395,20 +460,85 @@ test("hands the finished plate back to the ordinary paint path", () => {
   assert.match(renderer, /drawGroundLayer\(context, geometry, colors\);\s*\n\s*drawInkLayer\(context, geometry, colors\);\s*\n\s*drawKnotLayer\(context, geometry, colors\);\s*\n\s*drawIndexLayer\(context, geometry, colors\);/);
 });
 
-test("rolls the month across a year boundary and covers the unpriced interval", () => {
-  // A tape that began at the first market year would scroll a knot in the
-  // ghost chronology clean off the strip.
+test("rolls the reading on one spring rather than a transition per change", () => {
+  // A year is a position in the record, not four independent columns: rolled
+  // as digits, 2019 to 2020 turns the units back nine cells while the tens
+  // turns forward one, and during the plate's closing rush — a year every
+  // ~130ms against a 420ms transition and its stagger — none of them ever
+  // arrived. One cell a year is the movement the specimen is making.
+  assert.match(odometer, /export function YearRoll/);
+  assert.match(odometer, /years\.map\(\(cell\) => <span key=\{cell\} className="odo-cell">\{cell\}<\/span>\)/);
+  assert.match(explorer, /<YearRoll years=\{archiveYears\} year=\{selection\.year\}/);
+  // The strip begins at the chronology origin: a knot in the unpriced interval
+  // is selectable, and a strip starting in 2017 would have no cell to show it.
   assert.match(explorer, /const firstArchiveYear = Number\(data\.chronology\.origin\.slice\(0, 4\)\)/);
-  assert.match(odometer, /yearCount \* 12/);
-  assert.match(odometer, /MONTHS\[index % 12\]/);
+  assert.match(explorer, /const archiveYears = useMemo\(/);
+
+  // Critically damped, re-aimed in flight. A fixed transition per change
+  // resets its own duration on every new reading, so a run of readings never
+  // converges; a spring carries its speed into the next one.
+  assert.match(odometer, /const pull = STIFFNESS \* STIFFNESS \* \(reel\.to - reel\.at\) - 2 \* STIFFNESS \* reel\.speed/);
+  assert.doesNotMatch(styles, /\.odo-strip[^}]*transition/);
+  // One clock for every counter, stopped the moment they have all arrived.
+  assert.match(odometer, /frame = moving \? requestAnimationFrame\(run\) : 0/);
+  // Positions are written to the node, never through React: the entrance
+  // moves these sixty times a second.
+  assert.match(odometer, /reel\.node\.style\.transform = /);
+
+  // The month tape comes back round, so December to January is one cell
+  // forward rather than eleven back, and a lap can be taken off the position
+  // against the duplicate first cell without anything appearing to move.
+  assert.match(odometer, /if \(step > reel\.lap \/ 2\) step -= reel\.lap/);
+  assert.match(odometer, /function cyclicCells/);
+  assert.match(odometer, /reel\.at -= laps \* reel\.lap/);
+  // A background tab issues no frames; rolling through the gap on return
+  // would spend it showing numbers that are wrong rather than merely still.
+  assert.match(odometer, /if \(seconds > STALL_SECONDS\) land\(reel\)/);
 });
 
 test("gives the counter back the type that the readout's span rule overrides", () => {
   // `.stage-price span` sets the 12px label face on every span in the readout.
   assert.match(styles, /\.stage-price \.odo, \.stage-price \.odo \*/);
-  // A cell taller than the type, or a month like Sep loses its descender.
-  assert.match(styles, /--odo-cell: 1\.32em/);
-  assert.match(odometer, /translateY\(calc\(var\(--odo-cell\)/);
+  // A cell taller than the type, or a month like Sep loses its descender. It
+  // is declared on the counter, not the slot: the strips pin it to a whole
+  // device pixel and set it back there, and a slot declaring it for itself
+  // would shadow that.
+  assert.match(styles, /\.odo, \.odo-month \{ --odo-cell: 1\.32em/);
+  assert.doesNotMatch(styles, /\.odo-slot \{\s*--odo-cell/);
+  assert.match(odometer, /translate3d\(0, calc\(var\(--odo-cell\)/);
+});
+
+test("dissolves the counter's mask edges instead of slicing the cells off", () => {
+  // Type is not centred in its box, so the two fades take the room each end
+  // actually has: a quarter of a cell of clear air above the figures, and an
+  // eighth below, where a month's descender reaches to 88% of the cell.
+  assert.match(styles, /--odo-fade-top: 22%/);
+  assert.match(styles, /--odo-fade-bottom: 11%/);
+  assert.match(styles, /mask-image: var\(--odo-mask\)/);
+  assert.match(styles, /-webkit-mask-image: var\(--odo-mask\)/);
+  // Eased, not linear: a straight ramp over five pixels reads as a band with
+  // an edge of its own, which is the thing being got rid of.
+  assert.match(styles, /rgba\(0, 0, 0, \.5\) calc\(var\(--odo-fade-top\) \* \.5\)/);
+  assert.match(styles, /rgba\(0, 0, 0, \.5\) calc\(100% - var\(--odo-fade-bottom\) \* \.5\)/);
+  // A slot that never turns has no cut to hide, and a currency sign reaches
+  // higher than a figure does.
+  assert.match(styles, /\.odo-slot-fixed \{ -webkit-mask-image: none; mask-image: none; \}/);
+  assert.match(odometer, /className="odo-slot odo-slot-fixed"/);
+});
+
+test("pins the counter cell to a whole device pixel", () => {
+  // 1.32em of a clamped size is 46.464px at the readout, so cell n sits at
+  // n x 46.464 and successive cells raster against offsets of 0, .46, .93,
+  // .39 ... Turning the strip carries that unevenness past the window, which
+  // reads as the years bobbing rather than as one strip moving.
+  assert.match(odometer, /function pinCells/);
+  assert.match(odometer, /Math\.round\(natural\[index\] \* device\) \/ device/);
+  // Measured, because the size is a clamp on the viewport and the face has
+  // its own metrics — and re-measured when either can have changed.
+  assert.match(odometer, /window\.addEventListener\("resize", schedulePin\)/);
+  assert.match(odometer, /document\.fonts\?\.ready\.then\(schedulePin\)/);
+  // Cleared in one pass and measured in the next, so the rig costs one reflow.
+  assert.match(odometer, /for \(const counter of counters\) counter\.style\.removeProperty\("--odo-cell"\);/);
 });
 
 test("shows the unfinished outer ring as the one piece of ambient motion", () => {

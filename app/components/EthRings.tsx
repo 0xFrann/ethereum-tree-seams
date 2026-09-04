@@ -68,7 +68,6 @@ import {
 import { Odometer, MonthRoll, YearRoll } from "./eth-rings/Odometer";
 import { TypeOn, WipeIn } from "./eth-rings/TypeOn";
 import { useReducedMotion } from "./eth-rings/use-motion";
-import { useStageOpen } from "./stage-gate";
 
 type RevealPlan = {
   feather: number;
@@ -283,7 +282,7 @@ export function EthRings() {
   return (
     <section className="explorer explorer-stage" aria-busy={loadState.status === "loading"}>
       <StageTitle />
-      <div id="rings-explorer-entry" ref={entryTargetRef as RefObject<HTMLDivElement | null>} className="explorer-state" tabIndex={-1} role={loadState.status === "error" ? "alert" : undefined}>
+      <div ref={entryTargetRef as RefObject<HTMLDivElement | null>} className="explorer-state" tabIndex={-1} role={loadState.status === "error" ? "alert" : undefined}>
         <p className="state-kicker">{loadState.status === "loading" ? "Preparing specimen" : "Market specimen unavailable"}</p>
         <p>{loadState.status === "loading" ? "Loading the cached Bitstamp market history…" : loadState.message}</p>
         {loadState.status === "error" ? (
@@ -329,7 +328,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const selectionRef = useRef(selection);
   const eventSelectionRef = useRef(eventSelection);
 
-  const stageOpen = useStageOpen();
   const reduced = useReducedMotion();
   // Which beats of the score have been reached. One clock fires all of them,
   // so the page arrives as a composition rather than as separate animations.
@@ -688,11 +686,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           settle();
           return;
         }
-        // Behind the introduction the stage is inert and covered by opaque
-        // paper. Leaving the sheet blank means the drawing starts when the
-        // reader can actually see it.
         revealActiveRef.current = true;
-        if (!stageOpen) return;
         runReveal(built);
       });
     };
@@ -709,7 +703,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       cancelAnimationFrame(frame);
       cancelAnimationFrame(revealFrame);
     };
-  }, [allCues, data, fireCue, idleSelection, paintReading, paintSelection, reduced, stageOpen]);
+  }, [allCues, data, fireCue, idleSelection, paintReading, paintSelection, reduced]);
   useEffect(paintSelection, [paintSelection, selection, eventSelection]);
 
   const interactionAt = useCallback((clientX: number, clientY: number): Selection | null => {
@@ -824,7 +818,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           taken, and treating it as one used to cancel the rest of the score.
           The keyboard is left live: a keypress is deliberate. */}
       <div className="graph-stage">
-        <canvas id="rings-explorer-entry" ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
+        <canvas ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
           aria-label={`Interactive Ethereum annual rings. Selected ${periodLabel}; ${priceSummary} Use left and right arrows for months on this ring, up and down arrows for years.`}
           aria-describedby="rings-instructions rings-readout" onKeyDown={handleCanvasKeyDown}
           onPointerLeave={(event) => { if (rolling || event.pointerType !== "mouse") return; endScrub(); restoreIdleSelection(); }}
@@ -833,8 +827,8 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           Ethereum annual-ring market chart. Equivalent period and event controls are available around the chart.
         </canvas>
         <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot for its note.</p>
-        {/* The outer ring is unfinished; the introduction says so, and until now
-            nothing on the plate showed it. One slow breath at the growing edge. */}
+        {/* The outer ring is unfinished, and nothing on the plate showed it
+            until now. One slow breath at the growing edge. */}
         <span ref={frontierRef} className="growth-frontier" aria-hidden="true" />
       </div>
       <aside id="rings-readout" className="selected-mark" aria-label="Selected ring segment">

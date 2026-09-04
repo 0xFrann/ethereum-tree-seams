@@ -19,7 +19,7 @@ test("renders the viewport specimen shell and cache-loading boundary at the root
   const html = await response.text();
   assert.match(html, /<title>Ethereum Annual Rings<\/title>/i);
   assert.match(html, /ETH_TREE_01/i);
-  assert.match(html, /Preparing introduction/i);
+  assert.match(html, /Preparing specimen/i);
   assert.match(html, /Loading the cached Bitstamp market history/);
   assert.match(html, /explorer-stage/);
   assert.doesNotMatch(html, /site-header|wordmark|eth-diamond\.svg|Monthly return|Year return/);

@@ -18,7 +18,7 @@ The artwork communicates rhythm and chronology, not directly comparable absolute
 
 Visitors make one same-origin request to `/api/market-data`. That endpoint only reads the shared `MARKET_CACHE` R2 object; it never calls the provider. A Cloudflare hourly scheduled handler fetches the CryptoDataDownload Bitstamp CSV once, validates and aggregates it, and atomically replaces the single last-known-good payload. Provider failures preserve the existing cache, while an uninitialized cache returns a clear `503`.
 
-The browser renders a high-DPI Canvas specimen with deterministic event geometry and semantic HTML controls/readouts alongside it. A session-scoped introduction manages focus, escape dismissal, and reduced motion. Event records and their source metadata live separately from the market series.
+The browser renders a high-DPI Canvas specimen with deterministic event geometry and semantic HTML controls/readouts alongside it. Event records and their source metadata live separately from the market series.
 
 ## Run locally
 
@@ -49,7 +49,6 @@ pnpm run test:all
 app/
   api/market-data/route.ts       Cache-only application endpoint
   components/EthRings.tsx       Explorer state, controls, and readout
-  components/NarrativeShell.tsx Session entrance and focus management
   components/eth-rings/         Model, event geometry, and Canvas renderer
 lib/
   event-data.mjs                Sourced milestone and scar records
@@ -59,7 +58,7 @@ worker/index.ts                  Visitor routing and hourly scheduled refresh
 docs/research/                  Source investigations and decision record
 docs/design/                    Approved visual and interaction contracts
 docs/qa/                        Baseline, final screenshots, and audits
-tests/                           Data, cache, geometry, narrative, and SSR tests
+tests/                           Data, cache, geometry, explorer, and SSR tests
 ```
 
 ## Data boundaries and limitations

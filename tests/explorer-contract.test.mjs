@@ -2,37 +2,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-const componentUrl = new URL("../app/components/NarrativeShell.tsx", import.meta.url);
-const stylesUrl = new URL("../app/components/NarrativeShell.module.css", import.meta.url);
-const component = await readFile(componentUrl, "utf8");
-const styles = await readFile(stylesUrl, "utf8");
 const explorer = await readFile(new URL("../app/components/EthRings.tsx", import.meta.url), "utf8");
 const globalStyles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
-
-test("uses a deterministic session-only entrance state", () => {
-  assert.match(component, /useState<NarrativeMode>\("checking-session"\)/);
-  assert.match(component, /ethereum-rings:introduction:v1/);
-  assert.match(component, /window\.sessionStorage\.getItem/);
-  assert.match(component, /window\.sessionStorage\.setItem/);
-  assert.doesNotMatch(component, /localStorage|document\.cookie/);
-});
-
-test("keeps the explorer subtree mounted and the narrative modal labelled", () => {
-  assert.equal(component.match(/\{children\}/g)?.length, 1);
-  assert.match(component, /inert=\{blocked\}/);
-  assert.match(component, /role="dialog"/);
-  assert.match(component, /aria-modal="true"/);
-  assert.match(component, /aria-label="Read introduction"/);
-  assert.match(styles, /\.reopenControl \{[\s\S]*bottom:/);
-});
-
-test("ships the accepted introduction and preserves its close behavior", () => {
-  assert.match(component, /A living market archive/);
-  assert.match(component, /Enter the rings →/);
-  assert.match(component, /Return to the rings/);
-  assert.match(component, /event\.key === "Escape"/);
-  assert.match(component, /window\.scrollTo/);
-});
 
 test("builds a no-scroll viewport stage with centered graph and six edge regions", () => {
   assert.match(globalStyles, /\.explorer-stage \{[^}]*height: 100dvh;[^}]*overflow: hidden;/);

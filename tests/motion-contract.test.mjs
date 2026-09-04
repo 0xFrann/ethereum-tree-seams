@@ -25,7 +25,6 @@ const odometer = await read("eth-rings/Odometer.tsx");
 const typeOn = await read("eth-rings/TypeOn.tsx");
 const useMotion = await read("eth-rings/use-motion.ts");
 const renderer = await read("eth-rings/renderer.ts");
-const shell = await read("NarrativeShell.tsx");
 const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
 test("plays the page from one score, in the order the sheet is made", async () => {
@@ -448,13 +447,6 @@ test("guards every timer and frame driven animation behind reduced motion", () =
   assert.match(typeOn, /if \(reduced\) return <span className=\{typedClass\(className\)\}>\{text\}<\/span>/);
   assert.match(explorer, /if \(reduced \|\| revealPlayedRef\.current\) \{\s*\n\s*settle\(\);/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
-});
-
-test("waits for the introduction to clear before spending the choreography", () => {
-  assert.match(shell, /<StageGateContext\.Provider value=\{mode === "closed"\}>\{children\}<\/StageGateContext\.Provider>/);
-  assert.equal(shell.match(/\{children\}/g)?.length, 1);
-  assert.match(explorer, /const stageOpen = useStageOpen\(\)/);
-  assert.match(explorer, /if \(!stageOpen\) return;/);
 });
 
 test("accumulates the reveal clock so a background tab does not spend it unseen", () => {

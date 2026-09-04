@@ -1046,10 +1046,10 @@ function clamp01(value: number) {
 }
 
 /**
- * Where the outermost ring stops growing: the live edge of the specimen. The
- * introduction promises that this ring is unfinished and that each new day can
- * change its shape, and nothing on the plate showed that until now. Returned
- * in canvas units so a marker can be placed over the plate in CSS.
+ * Where the outermost ring stops growing: the live edge of the specimen. This
+ * ring is unfinished and each new day can change its shape, and nothing on the
+ * plate showed that until now. Returned in canvas units so a marker can be
+ * placed over the plate in CSS.
  */
 /**
  * The radius the front must reach for every mark to be finished: the last

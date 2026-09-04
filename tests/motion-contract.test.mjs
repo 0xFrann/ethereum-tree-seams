@@ -435,7 +435,7 @@ test("reads the palette with the geometry, not on every painted frame", () => {
   // Asking for a computed style is a style recalc, and the reading is painted
   // every frame of the entrance and every frame of a scrub.
   assert.match(explorer, /const colors = paletteRef\.current;/);
-  assert.match(explorer, /paletteRef\.current = \{\s*\n\s*paper: styles\.getPropertyValue\("--paper"\)\.trim\(\),/);
+  assert.match(explorer, /paletteRef\.current = \{\s*\n\s*ink: colors\.ink,\s*\n\s*accent: styles\.getPropertyValue\("--ring-accent"\)\.trim\(\),/);
   const reading = explorer.slice(explorer.indexOf("const paintReading = useCallback("), explorer.indexOf("const paintSelection = useCallback("));
   assert.doesNotMatch(reading, /getComputedStyle/);
 });

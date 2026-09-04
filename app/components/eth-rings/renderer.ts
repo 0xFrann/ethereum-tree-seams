@@ -1167,7 +1167,6 @@ export function drawSelection(
   selection: Selection,
   color: string,
   source: CanvasImageSource,
-  paper: string,
   arrival = 1,
 ) {
   const band = geometry.yearBands.find((candidate) => candidate.year === selection.year);
@@ -1187,7 +1186,10 @@ export function drawSelection(
     context.save();
     traceMonthWedge(context, wedgeInner, geometry.bark, selection.month, geometry.center);
     context.clip();
-    context.fillStyle = paper;
+    // Taken down the same way the caller's wash is: the drawing inside the
+    // wedge is faded, not covered, so nothing paints a slice of paper over the
+    // gaps between the rings.
+    context.globalCompositeOperation = "destination-out";
     context.globalAlpha = 0.2 * arrival;
     context.fillRect(0, 0, geometry.size, geometry.size);
     context.restore();

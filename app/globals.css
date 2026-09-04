@@ -115,11 +115,22 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .stage-dialog-backdrop { position: fixed; z-index: 200; inset: 0; display: grid; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); place-items: center; background: var(--paper); }
 .stage-dialog { position: relative; display: grid; width: min(38rem, 100%); height: min(42rem, calc(100dvh - 2rem)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
 .stage-dialog::after { content: ""; position: absolute; inset: auto 0 0; height: 2.75rem; background: linear-gradient(transparent, var(--paper)); pointer-events: none; }
-.stage-dialog-head { display: flex; min-height: 3.6rem; padding: .85rem .25rem 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; }
+/* The horizontal gutter is the focus ring's clearance, not a margin. The dialog
+   and its body both clip what overflows them, and a ring stands 5px off the
+   control it marks (4px offset, 1px wide), so a control set .25rem from either
+   edge — the close button, or any full-width button in the body — had the outer
+   edge of its ring shaved off. The head and the body carry the same gutter, so
+   the title still sets flush with the text beneath it. */
+.stage-dialog-head { display: flex; min-height: 3.6rem; padding: .85rem .5rem 1.5rem; align-items: center; justify-content: space-between; gap: 1rem; }
 .stage-dialog-head h2 { margin: 0; font: 400 clamp(1.45rem, 2.4vw, 1.9rem)/1 var(--font-display); letter-spacing: .01em; }
-.dialog-close { display: grid; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; padding: 0; place-items: center; border: 0; background: transparent; color: var(--ink-faint); cursor: pointer; font-size: 1.5rem; line-height: 1; transition: color .18s ease; }
+/* Centring a line box is not centring a mark. Courier Prime sets × between
+   .098em and .470em above the baseline — an ink centre .064em higher than where
+   centring the line box lands it, so the glyph reads high inside its own focus
+   ring. The padding is twice that: the box is centred in what is left of the
+   content box, so it takes up half of whatever is added. */
+.dialog-close { display: grid; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; padding: .129em 0 0; place-items: center; border: 0; background: transparent; color: var(--ink-faint); cursor: pointer; font-size: 1.5rem; line-height: 1; transition: color .18s ease; }
 .dialog-close:hover { color: var(--accent); }
-.stage-dialog-body { min-height: 0; overflow: auto; padding: 0 .25rem 2.75rem; font: 15px/1.6 var(--font-interface); overscroll-behavior: contain; scrollbar-color: var(--rule-soft) transparent; scrollbar-width: thin; }
+.stage-dialog-body { min-height: 0; overflow: auto; padding: 0 .5rem 2.75rem; font: 15px/1.6 var(--font-interface); overscroll-behavior: contain; scrollbar-color: var(--rule-soft) transparent; scrollbar-width: thin; }
 .stage-dialog-body::-webkit-scrollbar { width: .6rem; }
 .stage-dialog-body::-webkit-scrollbar-track { background: transparent; }
 .stage-dialog-body::-webkit-scrollbar-thumb { background: var(--rule-soft); }

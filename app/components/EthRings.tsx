@@ -289,7 +289,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   // a function of the geometry: rebuilt with it, never per frame.
   const revealPlanRef = useRef<RevealPlan | null>(null);
   const cacheRef = useRef<HTMLCanvasElement | null>(null);
-  const paletteRef = useRef<{ paper: string; ink: string; accent: string } | null>(null);
+  const paletteRef = useRef<{ ink: string; accent: string } | null>(null);
   const idleSelection = useMemo<Selection>(() => ({ year: data.years[latestYearIndex].year, month: latestMonth }), [data.years, latestMonth, latestYearIndex]);
   // The year strip is the record itself, one cell a year. It starts at the
   // chronology origin rather than at the first market year: a knot in the
@@ -417,12 +417,16 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     // touched the readout — exactly where a forced recalc costs most.
     const colors = paletteRef.current;
     if (!colors) return;
+    // The wash sets the specimen back by taking the drawing down, not by laying
+    // paper over the canvas. A paper fill across the square would print the
+    // canvas box on the sheet — a lighter rectangle standing off the page's own
+    // paper — and the plate is a drawing on that sheet, not a panel on it.
     context.save();
-    context.fillStyle = colors.paper;
+    context.globalCompositeOperation = "destination-out";
     context.globalAlpha = washRef.current;
     context.fillRect(0, 0, geometry.size, geometry.size);
     context.restore();
-    drawSelection(context, data, geometry, selected, colors.accent, cache, colors.paper, arrival);
+    drawSelection(context, data, geometry, selected, colors.accent, cache, arrival);
     if (eventSelectionRef.current) drawEventSelection(context, geometry, eventSelectionRef.current, colors.ink);
   }, [data]);
 
@@ -476,7 +480,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         ink: styles.getPropertyValue("--ring-ink").trim(), grain: styles.getPropertyValue("--ring-grain").trim(), muted: styles.getPropertyValue("--ring-muted").trim(), mark: styles.getPropertyValue("--ring-mark").trim(), bark: styles.getPropertyValue("--ring-bark").trim(),
       };
       paletteRef.current = {
-        paper: styles.getPropertyValue("--paper").trim(),
         ink: colors.ink,
         accent: styles.getPropertyValue("--ring-accent").trim(),
       };

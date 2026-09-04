@@ -39,6 +39,12 @@ import {
   type Geometry,
 } from "./eth-rings/renderer";
 import {
+  KEY_KNOT,
+  KEY_MARK_BOX,
+  KEY_RING_SHAPE,
+  KEY_RING_WEIGHT,
+} from "./eth-rings/key-marks";
+import {
   DETAIL_HOLD_MS,
   DETAIL_SPEED_MS,
   FRONT_FEATHER_GAPS,
@@ -210,6 +216,24 @@ function StageDialog({ title, children, onClose }: { title: string; children: Re
       </div>
     </div>,
     document.body,
+  );
+}
+
+/**
+ * One of the plate's marks, set beside the line of the key that names it.
+ *
+ * The plate strokes a contour and fills everything else, and the key follows
+ * it: the ring line is stroked at the weight rings are drawn at, the volume
+ * band is a filled outline at the strength the plate lays a ring's body down
+ * with, and the knot is filled solid, as knots are.
+ */
+function KeyMark({ path, kind }: { path: string; kind: "line" | "band" | "knot" }) {
+  return (
+    <svg className="key-mark" viewBox={`0 0 ${KEY_MARK_BOX.width} ${KEY_MARK_BOX.height}`} aria-hidden="true">
+      {kind === "line"
+        ? <path d={path} fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
+        : <path d={path} fill="currentColor" fillOpacity={kind === "band" ? 0.78 : 1} />}
+    </svg>
   );
 }
 
@@ -800,7 +824,11 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       <footer className="stage-credit">By <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">Fran Dalmasso ↗</a><span aria-hidden="true">·</span><a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer">Code ↗</a></footer>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announceSelection ? `${periodLabel} selected. ${priceSummary}${selectedEvent ? ` Milestone: ${selectedEvent.record.name}.` : ""}` : ""}</p>
       {dialog === "events" ? <StageDialog title="Knots" onClose={() => setDialog(null)}><div className="dialog-event-list">{timelineEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => { selectEvent({ kind: item.kind, id: item.record.id }, true); setDialog(null); }}><span>{formatDate(item.record.date)}</span><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></StageDialog> : null}
-      {dialog === "key" ? <StageDialog title="How to read the rings" onClose={() => setDialog(null)}><ul className="dialog-key"><li><i className="key-line" aria-hidden="true" />Ring shape — price</li><li><i className="key-weight" aria-hidden="true" />Ring weight — volume</li><li><i className="key-knot" aria-hidden="true" />Knots — protocol milestones</li></ul></StageDialog> : null}
+      {dialog === "key" ? <StageDialog title="How to read the rings" onClose={() => setDialog(null)}><ul className="dialog-key">
+        <li><KeyMark path={KEY_RING_SHAPE} kind="line" />Ring shape — price</li>
+        <li><KeyMark path={KEY_RING_WEIGHT} kind="band" />Ring weight — volume</li>
+        <li><KeyMark path={KEY_KNOT} kind="knot" />Knots — protocol milestones</li>
+      </ul></StageDialog> : null}
       {dialog === "data" ? <StageDialog title="Data and source" onClose={() => setDialog(null)}><dl className="dialog-data"><div><dt>Market</dt><dd>{data.source.market}</dd></div><div><dt>Provider</dt><dd>{data.source.provider}</dd></div><div><dt>Source cutoff</dt><dd>{formatDate(data.source.cutoff)}</dd></div><div><dt>Observed days</dt><dd>{data.source.observedRows.toLocaleString("en-US")}</dd></div></dl><p>{data.methodology.caveat}</p><p>{data.source.gaps.length ? `${data.source.gaps.length} source day${data.source.gaps.length === 1 ? " is" : "s are"} missing; none are filled.` : "No missing source days detected."}</p><a href={data.source.url} target="_blank" rel="noreferrer">Open the Bitstamp source ↗</a></StageDialog> : null}
       {dialog === "method" ? <StageDialog title="How the rings are built" onClose={() => setDialog(null)}><div className="dialog-method"><p><b>Price shape</b>{data.methodology.price}</p><p><b>Ring weight</b>{data.methodology.volume}</p><p><b>Additive growth</b>Each year grows outside the last, preserving enough clearance for the grain to remain legible.</p></div></StageDialog> : null}
     </section>

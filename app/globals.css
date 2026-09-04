@@ -142,11 +142,10 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .dialog-event-list small { color: var(--ink-soft); font: var(--text-body)/1.55 var(--font-interface); }
 .dialog-key { display: grid; gap: .8rem; margin: 0; padding: 0; list-style: none; }
 .dialog-key li { display: flex; gap: .9rem; align-items: center; }
-.dialog-key i { color: var(--ink-faint); }
-.dialog-key i { display: block; flex: 0 0 auto; width: 1.6rem; font-style: normal; }
-.key-line::after { content: "—"; }
-.key-weight::after { content: "══"; }
-.key-knot::after { content: "●"; }
+/* The marks are drawn at the size the plate draws them, so the swatch is a
+   window onto the specimen rather than a scaled diagram of it: 44 × 18 units of
+   the key's viewBox are 44 × 18 pixels of ring. */
+.dialog-key .key-mark { display: block; flex: 0 0 auto; width: 2.75rem; height: 1.125rem; color: var(--ink-faint); }
 .dialog-data { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem 1.25rem; margin: 0 0 2rem; }
 .dialog-data dt { color: var(--ink-faint); font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .13em; text-transform: uppercase; }
 .dialog-data dd { margin: .2rem 0 0; font: 400 14px/1.5 var(--font-interface); }

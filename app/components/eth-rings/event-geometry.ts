@@ -242,6 +242,33 @@ export function resolveEventCollisions(
   return placed;
 }
 
+/**
+ * The eight control points a knot is grown from: an ellipse laid along the ring
+ * it interrupts, with each point pushed in or out by its own share of the seed
+ * so no two knots on the plate are the same shape.
+ *
+ * The key draws its knot from here too, rather than describing one, so the mark
+ * beside "protocol milestones" is built the way the marks on the plate are.
+ */
+export function knotOutline(
+  seed: string,
+  center: Point,
+  majorRadius: number,
+  minorRadius: number,
+  rotation: number,
+): Point[] {
+  return Array.from({ length: 8 }, (_, index) => {
+    const angle = index / 8 * TAU;
+    const irregularity = 1 + hashSigned(`${seed}:${index}`) * 0.1;
+    const localX = Math.cos(angle) * majorRadius * irregularity;
+    const localY = Math.sin(angle) * minorRadius / irregularity;
+    return {
+      x: center.x + localX * Math.cos(rotation) - localY * Math.sin(rotation),
+      y: center.y + localX * Math.sin(rotation) + localY * Math.cos(rotation),
+    };
+  });
+}
+
 export function buildKnotGeometry(
   event: Milestone,
   anchor: EventAnchor,
@@ -256,16 +283,7 @@ export function buildKnotGeometry(
     anchor.ringRadius + offset,
     anchor.displayAngle,
   );
-  const path = Array.from({ length: 8 }, (_, index) => {
-    const angle = index / 8 * TAU;
-    const irregularity = 1 + hashSigned(`${event.id}:${index}`) * 0.1;
-    const localX = Math.cos(angle) * majorRadius * irregularity;
-    const localY = Math.sin(angle) * minorRadius / irregularity;
-    return {
-      x: center.x + localX * Math.cos(rotation) - localY * Math.sin(rotation),
-      y: center.y + localX * Math.sin(rotation) + localY * Math.cos(rotation),
-    };
-  });
+  const path = knotOutline(event.id, center, majorRadius, minorRadius, rotation);
   return { eventId: event.id, kind: "milestone", anchor, path, center, majorRadius, minorRadius };
 }
 

@@ -166,10 +166,29 @@ function StageTitle({ data, annotate = true }: { data?: MarketData; annotate?: b
 function StageDialog({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
+  // The sheet is as tall as what is written on it, up to the height of the
+  // page, so a short one sits in the middle of the viewport rather than at the
+  // top of a tall empty box. What only a scrolling sheet needs — the fade at
+  // its foot, and the clearance that lets the last line scroll out from under
+  // it — is dead space on a short one, and dead space at the foot is what
+  // would push the writing off centre. So the sheet says whether it scrolls.
+  const [scrolls, setScrolls] = useState(false);
 
   useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
+  useEffect(() => {
+    const body = bodyRef.current;
+    if (!body) return;
+    const measure = () => setScrolls(body.scrollHeight > body.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(body);
+    Array.from(body.children).forEach((child) => observer.observe(child));
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     const stage = document.querySelector<HTMLElement>(".explorer-stage");
@@ -207,12 +226,12 @@ function StageDialog({ title, children, onClose }: { title: string; children: Re
 
   return createPortal(
     <div className="stage-dialog-backdrop" role="presentation">
-      <div ref={dialogRef} className="stage-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+      <div ref={dialogRef} className="stage-dialog" data-scrolls={scrolls || undefined} role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <div className="stage-dialog-head">
           <h2 id={titleId}>{title}</h2>
           <button type="button" className="dialog-close" onClick={onClose} aria-label={`Close ${title}`}>×</button>
         </div>
-        <div className="stage-dialog-body">{children}</div>
+        <div ref={bodyRef} className="stage-dialog-body">{children}</div>
       </div>
     </div>,
     document.body,

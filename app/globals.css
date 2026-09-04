@@ -10,6 +10,9 @@
   --ink-title: #3a352b;
   --rule: #d5cec0;
   --rule-soft: #e5e0d3;
+  /* Ink thinned into the paper: a rule that has to be found rather than read,
+     for the one mark on the page that is a control and not a drawn line. */
+  --rule-firm: #b6b1a6;
   --accent: #1e1b16;
   /* One typeface throughout: hierarchy comes from size, weight and tracking, not from a second face. */
   --font-display: "Courier Prime", "Courier New", monospace;
@@ -103,7 +106,11 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .month-event-list strong { font: 400 clamp(1.05rem, 1.4vw, 1.3rem)/1.2 var(--font-interface); }
 .month-event-list small { display: -webkit-box; overflow: hidden; color: var(--ink-soft); font: 400 13px/1.5 var(--font-interface); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .stage-more { right: max(2.4rem, env(safe-area-inset-right)); bottom: max(5rem, calc(env(safe-area-inset-bottom) + 3.8rem)); display: grid; gap: .45rem; text-align: right; }
-.stage-more button { padding: .2rem 0; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; text-align: right; text-decoration: none; transition: color .18s ease; }
+/* The focus ring stands 4px off the button's box, so a button with no
+   horizontal padding wore its ring tight against the ends of its text. The
+   padding gives the ring room at the sides, and the negative margin gives
+   that room back so the text still sets flush with the corner. */
+.stage-more button { padding: .2rem .6rem; margin-right: -.6rem; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; text-align: right; text-decoration: none; transition: color .18s ease; }
 .stage-more button:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .28em; }
 .stage-credit { bottom: max(2.4rem, env(safe-area-inset-bottom)); left: 50%; display: flex; gap: .55rem; align-items: center; color: var(--ink-faint); transform: translateX(-50%); white-space: nowrap; }
 .stage-credit a { text-decoration: underline; }
@@ -113,8 +120,12 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .retry-button { min-height: 44px; margin-top: .5rem; padding: 9px 18px; border: 0; background: transparent; color: var(--ink); cursor: pointer; text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: .3em; transition: text-decoration-color .18s ease; }
 .retry-button:hover { text-decoration-color: currentColor; }
 .stage-dialog-backdrop { position: fixed; z-index: 200; inset: 0; display: grid; padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left)); place-items: center; background: var(--paper); }
-.stage-dialog { position: relative; display: grid; width: min(38rem, 100%); height: min(42rem, calc(100dvh - 2rem)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
-.stage-dialog::after { content: ""; position: absolute; inset: auto 0 0; height: 2.75rem; background: linear-gradient(transparent, var(--paper)); pointer-events: none; }
+/* As tall as what is written on it, up to the height of the page: the backdrop
+   centres the sheet, so a short one is centred writing rather than writing at
+   the top of a tall empty box. */
+.stage-dialog { position: relative; display: grid; width: min(38rem, 100%); max-height: min(42rem, calc(100dvh - 2rem)); grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+/* The fade says there is more below, so only a sheet that scrolls carries it. */
+.stage-dialog[data-scrolls]::after { content: ""; position: absolute; inset: auto 0 0; height: 2.75rem; background: linear-gradient(transparent, var(--paper)); pointer-events: none; }
 /* The horizontal gutter is the focus ring's clearance, not a margin. The dialog
    and its body both clip what overflows them, and a ring stands 5px off the
    control it marks (4px offset, 1px wide), so a control set .25rem from either
@@ -128,12 +139,27 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    centring the line box lands it, so the glyph reads high inside its own focus
    ring. The padding is twice that: the box is centred in what is left of the
    content box, so it takes up half of whatever is added. */
-.dialog-close { display: grid; flex: 0 0 auto; width: 2.5rem; height: 2.5rem; padding: .129em 0 0; place-items: center; border: 0; background: transparent; color: var(--ink-faint); cursor: pointer; font-size: 1.5rem; line-height: 1; transition: color .18s ease; }
+.dialog-close { display: grid; flex: 0 0 auto; width: 2.75rem; height: 2.75rem; padding: .129em 0 0; place-items: center; border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; font-size: 1.85rem; line-height: 1; transition: color .18s ease; }
 .dialog-close:hover { color: var(--accent); }
-.stage-dialog-body { min-height: 0; overflow: auto; padding: 0 .5rem 2.75rem; font: 15px/1.6 var(--font-interface); overscroll-behavior: contain; scrollbar-color: var(--rule-soft) transparent; scrollbar-width: thin; }
-.stage-dialog-body::-webkit-scrollbar { width: .6rem; }
-.stage-dialog-body::-webkit-scrollbar-track { background: transparent; }
-.stage-dialog-body::-webkit-scrollbar-thumb { background: var(--rule-soft); }
+.stage-dialog-body { min-height: 0; overflow: auto; padding: 0 .5rem; font: 15px/1.6 var(--font-interface); overscroll-behavior: contain; }
+/* Clearance for the fade, so the last line can scroll out from under it. */
+.stage-dialog[data-scrolls] .stage-dialog-body { padding-bottom: 2.75rem; }
+/* Two rules, 2px wide and square: the track drawn the whole height of the sheet
+   in the softest rule on the page, and the thumb a shade firmer on top of it.
+   A dark thumb on nothing is a bar hanging in the margin; a pale rule with a
+   slightly firmer length of it marked off reads as a measure, which is what it
+   is — how much of the sheet is in front of you, and where.
+   `scrollbar-width` is deliberately not set here — a browser that has it takes
+   it in preference to these rules and draws its own thin scrollbar, which is a
+   rounded bar of about eleven pixels and cannot be narrowed. */
+.stage-dialog-body::-webkit-scrollbar { width: 2px; }
+.stage-dialog-body::-webkit-scrollbar-track { background: var(--rule-soft); }
+.stage-dialog-body::-webkit-scrollbar-thumb { background: var(--rule-firm); border-radius: 0; }
+/* Firefox draws no scrollbar from those rules, and its own is the only one it
+   will draw, so it gets the standard properties on their own. */
+@supports (-moz-appearance: none) {
+  .stage-dialog-body { scrollbar-color: var(--rule-firm) var(--rule-soft); scrollbar-width: thin; }
+}
 .stage-dialog-body p { margin: 0 0 1rem; }
 .dialog-selector > p { margin: 0 0 .5rem; color: var(--ink-faint); font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .13em; text-transform: uppercase; }
 .dialog-selector > p:not(:first-child) { margin-top: 1.5rem; }

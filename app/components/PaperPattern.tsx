@@ -4,16 +4,18 @@ import { useEffect, useRef } from "react";
 import { useReducedMotion } from "./eth-rings/use-motion";
 import { readPlate, subscribePlate, type PlateMask } from "./paper-pattern/plate-mask";
 
-// The paper's Turing pattern, grown live on the GPU.
+// The paper's Turing pattern, kept moving on the GPU.
 //
 // A Gray-Scott reaction–diffusion runs across the whole sheet, one cell per
 // CSS pixel, and only the crest of each stripe is drawn: a hairline, in the
 // same weight as the grain on the plate, with paper between. The reaction is
-// grown to a finished labyrinth before anything is shown, then faded in whole:
-// the reader never watches it fill. What moves is the finished pattern. The
-// kill rate varies across the sheet in a slow, drifting field, so the lines
-// are forever coming apart and re-forming a little differently. Under reduced
-// motion the field stands still and the pattern is drawn once.
+// not grown here: it was settled once, offline (build/turing-seed.mjs), and
+// the sheet seeds its field from that finished state, so the first frame is
+// already a complete labyrinth and the reader never watches it fill. What
+// moves is the finished pattern. The kill rate varies across the sheet in a
+// slow, drifting field, so the lines are forever coming apart and re-forming
+// a little differently. Under reduced motion the field stands still and the
+// pattern is drawn once.
 //
 // The pattern stops at the plate's bark. The plate publishes its outline (see
 // paper-pattern/plate-mask.ts) and the paper leaves the inside blank, so the
@@ -31,14 +33,13 @@ const DIFFUSE_V = 0.1;
 const DRIFT = 0.0015;
 const DRIFT_WAVE = 220;
 const DRIFT_RATE = 0.001;
-// A quarter of the cells are seeded, so the labyrinth covers the sheet within
-// about five hundred steps; SETTLE_STEPS are run, unseen, before the first
-// frame is shown, in chunks sized to what the GPU just managed so a slow one
-// is not stalled by them. The reaction is then stepped by wall-clock time
-// rather than by frame, so it runs at the same pace on every refresh rate.
-const SEED_FRACTION = 0.25;
-const SETTLE_STEPS = 900;
-const SETTLE_CHUNK = { start: 150, min: 10, max: 300 };
+// The settled state, tiled across the sheet: U in red, V doubled in green,
+// six bits each. SETTLE_STEPS are run, unseen, before the first frame to
+// take the quantisation out of it. The reaction is then stepped by wall-clock
+// time rather than by frame, so it runs at the same pace on every refresh rate.
+const SEED_URL = "/turing-seed.png";
+const SEED_V_SCALE = 2;
+const SETTLE_STEPS = 24;
 const STEPS_PER_MS = 0.5;
 const MAX_STEPS_PER_FRAME = 24;
 // The finished pattern arrives as a fade, not a fill.
@@ -63,21 +64,22 @@ precision highp float;
 uniform sampler2D u_prev;
 uniform vec2 u_prevSize;
 uniform float u_hasPrev;
+uniform sampler2D u_seed;
+uniform ivec2 u_seedSize;
 out vec4 o;
-uint hash(uvec2 p) {
-  uint h = p.x * 1664525u ^ p.y * 1013904223u;
-  h ^= h >> 16; h *= 0x7feb352du; h ^= h >> 15; h *= 0x846ca68bu; h ^= h >> 16;
-  return h;
-}
 void main() {
   ivec2 p = ivec2(gl_FragCoord.xy);
-  // A resize carries the pattern already grown over; only new ground is seeded.
+  // A resize carries the pattern already moving over; only new ground is seeded.
   if (u_hasPrev > 0.5 && p.x < int(u_prevSize.x) && p.y < int(u_prevSize.y)) {
     o = vec4(texelFetch(u_prev, p, 0).rg, 0.0, 1.0);
     return;
   }
-  float r = float(hash(uvec2(p)) & 0xffffu) / 65535.0;
-  o = r < ${SEED_FRACTION} ? vec4(0.5, 0.25, 0.0, 1.0) : vec4(1.0, 0.0, 0.0, 1.0);
+  // The settled tile repeats seamlessly. Every other row of tiles is set half
+  // a tile over, so the repeat is hard to find; the drift soon tells the
+  // copies apart anyway.
+  ivec2 q = p + ivec2(((p.y / u_seedSize.y) % 2) * (u_seedSize.x / 2), 0);
+  vec4 s = texelFetch(u_seed, q % u_seedSize, 0);
+  o = vec4(s.r, s.g / ${SEED_V_SCALE}.0, 0.0, 1.0);
 }`;
 
 const STEP = `#version 300 es
@@ -201,7 +203,6 @@ export function PaperPattern() {
     let frame = 0;
     let last = 0;
     let settled = 0;
-    let chunk = SETTLE_CHUNK.start;
     let phase = 0;
     let shownAt = 0;
     let simWidth = 0;
@@ -212,6 +213,8 @@ export function PaperPattern() {
     let front = 0;
     const ink = inkColor(canvas);
     const plateTexture = gl.createTexture();
+    const seedTexture = gl.createTexture();
+    let seedSize: [number, number] | null = null;
     let plate: { center: [number, number]; on: boolean } = { center: [0, 0], on: false };
 
     const stateTexture = (width: number, height: number) => {
@@ -230,8 +233,10 @@ export function PaperPattern() {
 
     const draw = () => gl.drawArrays(gl.TRIANGLES, 0, 3);
 
-    // Size the reaction to the viewport, carrying over whatever has grown.
+    // Size the reaction to the viewport, carrying over whatever is already
+    // moving and seeding the rest from the settled tile.
     const resize = () => {
+      if (!seedSize) return;
       const width = Math.max(1, Math.ceil(window.innerWidth));
       const height = Math.max(1, Math.ceil(window.innerHeight));
       dpr = Math.min(window.devicePixelRatio || 1, 2);
@@ -257,6 +262,10 @@ export function PaperPattern() {
       gl.uniform1i(uniform(seed, "u_prev"), 0);
       gl.uniform2f(uniform(seed, "u_prevSize"), previousSize[0], previousSize[1]);
       gl.uniform1f(uniform(seed, "u_hasPrev"), previous ? 1 : 0);
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, seedTexture);
+      gl.uniform1i(uniform(seed, "u_seed"), 1);
+      gl.uniform2i(uniform(seed, "u_seedSize"), seedSize[0], seedSize[1]);
       draw();
       previous?.forEach((texture) => gl.deleteTexture(texture));
       previousTargets?.forEach((target) => gl.deleteFramebuffer(target));
@@ -331,17 +340,12 @@ export function PaperPattern() {
     const tick = (now: number) => {
       frame = 0;
       if (disposed) return;
-      // Finish the labyrinth before showing any of it: a few heavy frames
-      // with nothing drawn, so the sheet never shows the pattern half-grown.
+      // Take the quantisation out of the seed before showing any of it: one
+      // unseen frame, so the sheet never shows the pattern half-made.
       if (settled < SETTLE_STEPS) {
-        if (last) {
-          const took = now - last;
-          if (took > 50) chunk = Math.max(SETTLE_CHUNK.min, Math.floor(chunk / 2));
-          else if (took < 20) chunk = Math.min(SETTLE_CHUNK.max, Math.floor(chunk * 1.5));
-        }
-        react(chunk, false);
-        settled += chunk;
-        if (settled >= SETTLE_STEPS) shownAt = now;
+        react(SETTLE_STEPS - settled, false);
+        settled = SETTLE_STEPS;
+        shownAt = now;
         last = now;
         frame = requestAnimationFrame(tick);
         return;
@@ -375,8 +379,23 @@ export function PaperPattern() {
       wake();
     };
 
-    resize();
-    wake();
+    // Nothing runs until the settled state has arrived.
+    const image = new Image();
+    image.src = SEED_URL;
+    image.decode().then(() => {
+      if (disposed) return;
+      gl.bindTexture(gl.TEXTURE_2D, seedTexture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+      seedSize = [image.naturalWidth, image.naturalHeight];
+      resize();
+      wake();
+    }, () => {
+      // Without the seed the sheet stays plain paper.
+    });
     window.addEventListener("resize", onResize);
     document.addEventListener("visibilitychange", wake);
     const unsubscribe = subscribePlate(onPlate);
@@ -389,6 +408,7 @@ export function PaperPattern() {
       states?.forEach((texture) => gl.deleteTexture(texture));
       targets?.forEach((target) => gl.deleteFramebuffer(target));
       gl.deleteTexture(plateTexture);
+      gl.deleteTexture(seedTexture);
       [seed, step, show].forEach((program) => gl.deleteProgram(program));
     };
   }, [reduced]);

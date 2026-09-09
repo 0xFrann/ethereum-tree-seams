@@ -14,7 +14,8 @@
     "test": "pnpm run build && node --test tests/*.test.mjs",
     "test:all": "pnpm run lint && pnpm run typecheck && pnpm test",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "pattern": "node build/turing-seed.mjs"
   },
   "dependencies": {
     "next": "^16.3.2",

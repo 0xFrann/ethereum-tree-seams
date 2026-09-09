@@ -56,7 +56,6 @@ import {
   chainDelays,
   buildRamp,
   easeInOutCubic,
-  easeOutCubic,
   indexSchedule,
   monthAtIndex,
   PLATE_RAMP,
@@ -403,7 +402,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const eventsForMarket = useCallback((next: Selection) => {
     const prefix = `${next.year}-${String(next.month + 1).padStart(2, "0")}-`;
     return timelineEvents.filter((item) => item.record.date.startsWith(prefix));
-  }, [data.years, timelineEvents]);
+  }, [timelineEvents]);
   const selectedMonthEvents = eventsForMarket(selection);
   // No month on the plate carries more than one knot, so reaching the month is
   // reaching its knot: the note reads it straight away rather than offering a

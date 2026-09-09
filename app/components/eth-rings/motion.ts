@@ -271,7 +271,6 @@ export const PLATE_END = SCORE.plate.start + SCORE.plate.duration;
 // The canvas keeps drawing until the calendar has closed the sheet, not merely
 // until the plate itself is finished: the index ring is part of the drawing.
 export const DRAW_END = Math.max(PLATE_END, SCORE.index.start + SCORE.index.duration);
-export const SCORE_DURATION = SCORE.note.start + SCORE.note.duration;
 
 // How far the advancing edge is feathered, as a multiple of the ring gap. A
 // year is six lines, so a line spacing is a sixth of a gap; the feather is a

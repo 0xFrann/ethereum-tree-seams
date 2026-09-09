@@ -125,7 +125,6 @@ test("renders knots with a solid neutral treatment", async () => {
   const knot = source.slice(source.indexOf("function drawKnot"), source.indexOf("export function drawStaticArtwork"));
   assert.match(knot, /context\.globalAlpha = 1/);
   assert.match(source, /drawKnot\(context, knot, colors\.mark\)/);
-  assert.doesNotMatch(source, /data\.scars|drawScar|events\.scars/);
 });
 
 test("extends ghost grain through unobserved years and unfinished months", async () => {

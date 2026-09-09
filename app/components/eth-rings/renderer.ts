@@ -492,8 +492,8 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
   });
   const events: EventGeometry = {
     knots,
-    fineHitRegions: buildEventHitRegions(knots, [], "fine"),
-    coarseHitRegions: buildEventHitRegions(knots, [], "coarse"),
+    fineHitRegions: buildEventHitRegions(knots, "fine"),
+    coarseHitRegions: buildEventHitRegions(knots, "coarse"),
   };
 
   // A calendar segment is interactive only when it can reveal an observed
@@ -1046,12 +1046,6 @@ function clamp01(value: number) {
 }
 
 /**
- * Where the outermost ring stops growing: the live edge of the specimen. This
- * ring is unfinished and each new day can change its shape, and nothing on the
- * plate showed that until now. Returned in canvas units so a marker can be
- * placed over the plate in CSS.
- */
-/**
  * The radius the front must reach for every mark to be finished: the last
  * contour visible, the last ring at full weight, the last knot fully grown.
  *
@@ -1138,6 +1132,12 @@ export function radiusAtStop(stops: readonly number[], position: number) {
   return from + (to - from) * (clamped - index);
 }
 
+/**
+ * Where the outermost ring stops growing: the live edge of the specimen. This
+ * ring is unfinished and each new day can change its shape, and nothing on the
+ * plate showed that until now. Returned in canvas units so a marker can be
+ * placed over the plate in CSS.
+ */
 export function growthFrontier(geometry: Geometry) {
   const ring = geometry.rings.at(-1);
   if (!ring) return null;
@@ -1295,16 +1295,6 @@ export function hitTestEvent(
     pointer === "coarse" ? geometry.events.coarseHitRegions : geometry.events.fineHitRegions,
     { x, y },
   );
-}
-
-export function hitTestInteractive(
-  geometry: Geometry,
-  x: number,
-  y: number,
-  pointer: "fine" | "coarse" = "fine",
-): Readonly<{ event: EventSelection; market: Selection | null }> {
-  void pointer;
-  return { event: null, market: hitTest(geometry, x, y) };
 }
 
 export function hitTest(geometry: Geometry, x: number, y: number): Selection | null {

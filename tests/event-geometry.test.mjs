@@ -4,13 +4,10 @@ import {
   buildEventAnchors,
   buildEventHitRegions,
   buildKnotGeometry,
-  buildScarGeometry,
   dateToAngle,
-  deformGrainPoint,
   hitTestEvents,
   interpolateRingAtFraction,
   nextEventId,
-  normalizeScarMagnitude,
   parseIsoDateUtc,
   resolveEventCollisions,
   smoothCircularSeries,
@@ -45,21 +42,8 @@ function milestone(id, date) {
   };
 }
 
-function scar(id, date, healingState = "closed", visualMagnitude = 75) {
-  return {
-    id,
-    date,
-    name: id,
-    summary: "summary",
-    affectedLayer: "bridge",
-    grossUsdAtIncident: 250_000_000,
-    reportedImpact: "$250M",
-    recoveryStatus: "unrecovered",
-    sourceUrl: "https://example.com",
-    confidence: "high",
-    visualMagnitude,
-    healingState,
-  };
+function event(id, date) {
+  return { kind: "milestone", record: milestone(id, date) };
 }
 
 function anchorsFor(events, yearBands = [band(2022, 120)], size = 320) {
@@ -108,21 +92,13 @@ test("circular smoothing eases the December-to-January seam", () => {
   assert.ok(smoothed[0] > 0);
 });
 
-test("normalizes magnitude using the fixed one-million to 1.5-billion scale", () => {
-  assert.equal(normalizeScarMagnitude(1_000_000), 0);
-  assert.equal(normalizeScarMagnitude(1_500_000_000), 100);
-  assert.equal(normalizeScarMagnitude(1), 0);
-  assert.equal(normalizeScarMagnitude(9_000_000_000), 100);
-  assert.throws(() => normalizeScarMagnitude(Number.NaN), /finite/);
-});
-
 test("builds exact anchors and excludes pre-start or future events", () => {
   const start = parseIsoDateUtc("2017-11-09").fraction;
   const yearBand = band(2017, 90, { startFraction: start, activeFraction: 1 });
   const events = [
-    { kind: "milestone", record: milestone("too-early", "2017-10-16") },
-    { kind: "milestone", record: milestone("valid", "2017-11-09") },
-    { kind: "scar", record: scar("future", "2027-01-01") },
+    event("too-early", "2017-10-16"),
+    event("valid", "2017-11-09"),
+    event("future", "2027-01-01"),
   ];
   const result = buildEventAnchors(events, [yearBand, band(2027)], {
     center: 160,
@@ -135,10 +111,10 @@ test("builds exact anchors and excludes pre-start or future events", () => {
 });
 
 test("knot geometry is deterministic, asymmetric, and remains on its host grain", () => {
-  const event = milestone("merge", "2022-09-15");
-  const anchor = anchorsFor([{ kind: "milestone", record: event }])[0];
-  const first = buildKnotGeometry(event, anchor, 18);
-  const second = buildKnotGeometry(event, anchor, 18);
+  const record = milestone("merge", "2022-09-15");
+  const anchor = anchorsFor([{ kind: "milestone", record }])[0];
+  const first = buildKnotGeometry(record, anchor, 18);
+  const second = buildKnotGeometry(record, anchor, 18);
   assert.deepEqual(first, second);
   assert.equal(first.path.length, 8);
   assert.ok(first.majorRadius >= 7 && first.majorRadius <= 12);
@@ -146,59 +122,8 @@ test("knot geometry is deterministic, asymmetric, and remains on its host grain"
   assert.ok(Math.abs(centerRadius - anchor.ringRadius) <= 1.25);
 });
 
-test("scar states extend only outward and retain distinct closure behavior", () => {
-  for (const state of ["healed", "closed", "open"]) {
-    const event = scar(state, "2022-03-23", state, 88);
-    const anchor = anchorsFor([{ kind: "scar", record: event }])[0];
-    const geometry = buildScarGeometry(event, anchor, {
-      localGap: 18,
-      barkRadii: Array(360).fill(155),
-    });
-    for (const point of geometry.centerline) {
-      const radius = Math.hypot(point.x - anchor.center, point.y - anchor.center);
-      assert.ok(radius >= anchor.ringRadius - 1e-9);
-    }
-    assert.ok(geometry.maxHalfWidth >= 1.5 && geometry.maxHalfWidth <= 4.5);
-    if (state === "open") {
-      assert.ok(geometry.endRadius > 155);
-      assert.equal(geometry.bridges.length, 0);
-    } else {
-      assert.ok(geometry.endRadius < 155);
-      assert.ok(geometry.bridges.length > 0);
-    }
-  }
-});
-
-test("larger magnitudes cannot make scars shorter or narrower", () => {
-  const anchor = anchorsFor([{ kind: "scar", record: scar("base", "2022-03-23") }])[0];
-  const small = buildScarGeometry(scar("small", "2022-03-23", "closed", 0), anchor, {
-    localGap: 18,
-    barkRadii: Array(360).fill(180),
-  });
-  const large = buildScarGeometry(scar("large", "2022-03-23", "closed", 100), anchor, {
-    localGap: 18,
-    barkRadii: Array(360).fill(180),
-  });
-  assert.ok(large.endRadius >= small.endRadius);
-  assert.ok(large.maxHalfWidth >= small.maxHalfWidth);
-});
-
-test("grain deformation leaves older radii unchanged", () => {
-  const event = scar("nomad", "2022-08-01", "open", 71);
-  const anchor = anchorsFor([{ kind: "scar", record: event }])[0];
-  const geometry = buildScarGeometry(event, anchor, {
-    localGap: 18,
-    barkRadii: Array(360).fill(155),
-  });
-  const old = { radius: anchor.ringRadius - 1, angle: anchor.displayAngle };
-  assert.deepEqual(deformGrainPoint(old, [geometry], []), old);
-});
-
 test("collision output is independent of input order", () => {
-  const records = [
-    { kind: "scar", record: scar("b", "2022-02-02") },
-    { kind: "scar", record: scar("a", "2022-02-02") },
-  ];
+  const records = [event("b", "2022-02-02"), event("a", "2022-02-02")];
   const forward = resolveEventCollisions(anchorsFor(records), { pointer: "coarse", selectionHaloPx: 3 });
   const reverse = resolveEventCollisions(anchorsFor([...records].reverse()), { pointer: "coarse", selectionHaloPx: 3 });
   assert.deepEqual(forward, reverse);
@@ -206,23 +131,19 @@ test("collision output is independent of input order", () => {
   assert.ok(forward.every((item) => Math.abs(item.displayAngle - item.trueAngle) <= Math.PI / 30 + 1e-9));
 
   const displaced = forward.find((item) => item.displayAngle !== item.trueAngle);
-  const displacedEvent = scar(displaced.eventId, displaced.date);
-  const wound = buildScarGeometry(displacedEvent, displaced, {
-    localGap: 18,
-    barkRadii: Array(360).fill(155),
-  });
-  const regions = buildEventHitRegions([], [wound], "coarse");
+  const knot = buildKnotGeometry(milestone(displaced.eventId, displaced.date), displaced, 18);
+  const regions = buildEventHitRegions([knot], "coarse");
   assert.deepEqual(hitTestEvents(regions, displaced.truePoint), {
-    kind: "scar",
+    kind: "milestone",
     id: displaced.eventId,
   });
 });
 
-test("the accepted 2022 incidents retain exact angles when their envelopes clear", () => {
+test("events whose envelopes clear keep their exact angles", () => {
   const events = [
-    { kind: "scar", record: scar("wormhole", "2022-02-02") },
-    { kind: "scar", record: scar("ronin", "2022-03-23") },
-    { kind: "scar", record: scar("nomad", "2022-08-01") },
+    event("wormhole", "2022-02-02"),
+    event("ronin", "2022-03-23"),
+    event("nomad", "2022-08-01"),
   ];
   const resolved = resolveEventCollisions(anchorsFor(events, [band(2022, 120)], 320), {
     pointer: "coarse",
@@ -232,31 +153,27 @@ test("the accepted 2022 incidents retain exact angles when their envelopes clear
 });
 
 test("hit regions keep visual size separate from pointer target size", () => {
-  const knotEvent = milestone("pectra", "2022-05-07");
-  const scarEvent = scar("ronin", "2022-03-23", "closed", 88);
+  const pectra = milestone("pectra", "2022-05-07");
+  const merge = milestone("merge", "2022-09-15");
   const anchors = anchorsFor([
-    { kind: "milestone", record: knotEvent },
-    { kind: "scar", record: scarEvent },
+    { kind: "milestone", record: pectra },
+    { kind: "milestone", record: merge },
   ]);
-  const knot = buildKnotGeometry(knotEvent, anchors.find((item) => item.eventId === "pectra"), 18);
-  const wound = buildScarGeometry(scarEvent, anchors.find((item) => item.eventId === "ronin"), {
-    localGap: 18,
-    barkRadii: Array(360).fill(155),
-  });
-  const fine = buildEventHitRegions([knot], [wound], "fine");
-  const coarse = buildEventHitRegions([knot], [wound], "coarse");
+  const knots = [
+    buildKnotGeometry(pectra, anchors.find((item) => item.eventId === "pectra"), 18),
+    buildKnotGeometry(merge, anchors.find((item) => item.eventId === "merge"), 18),
+  ];
+  const fine = buildEventHitRegions(knots, "fine");
+  const coarse = buildEventHitRegions(knots, "coarse");
   assert.ok(fine.every((item) => item.radiusCssPx === 14));
   assert.ok(coarse.every((item) => item.radiusCssPx === 22));
-  assert.deepEqual(hitTestEvents(coarse, knot.center), { kind: "milestone", id: "pectra" });
-  assert.deepEqual(hitTestEvents(coarse, wound.centerline[3]), { kind: "scar", id: "ronin" });
+  assert.deepEqual(hitTestEvents(coarse, knots[0].center), { kind: "milestone", id: "pectra" });
+  assert.deepEqual(hitTestEvents(coarse, knots[1].center), { kind: "milestone", id: "merge" });
   assert.equal(hitTestEvents(coarse, { x: 0, y: 0 }), null);
 });
 
 test("chronological keyboard helper clamps at the ends", () => {
-  const events = [
-    { kind: "scar", record: scar("late", "2022-08-01") },
-    { kind: "milestone", record: milestone("early", "2021-01-01") },
-  ];
+  const events = [event("late", "2022-08-01"), event("early", "2021-01-01")];
   assert.equal(nextEventId(events, null, "first"), "early");
   assert.equal(nextEventId(events, null, "last"), "late");
   assert.equal(nextEventId(events, "early", 1), "late");

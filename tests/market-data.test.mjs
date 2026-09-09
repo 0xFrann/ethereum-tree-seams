@@ -47,7 +47,6 @@ test("keeps encodings normalized and exposes event/cache metadata", () => {
   assert.equal(january.low, 99);
   assert.equal(january.high, 106);
   assert.equal(data.milestones.length, 11);
-  assert.equal(data.scars.length, 9);
 });
 
 test("accepts an incomplete current year and discloses source gaps without filling them", () => {

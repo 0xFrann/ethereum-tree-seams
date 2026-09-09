@@ -12,6 +12,7 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import { priceUsd } from "./eth-rings/format";
+import { publishPlate } from "./paper-pattern/plate-mask";
 import {
   MONTHS,
   type EventSelection,
@@ -538,6 +539,8 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       };
       const geometry = buildGeometry(data, size);
       geometryRef.current = geometry;
+      // The paper's pattern stops at the bark; tell it where that is.
+      publishPlate({ element: canvas, size, radii: geometry.bark });
 
       const cache = layer();
       if (!cache.surfaceContext) return null;
@@ -738,6 +741,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       observer.disconnect();
       cancelAnimationFrame(frame);
       cancelAnimationFrame(revealFrame);
+      publishPlate(null);
     };
   }, [allCues, data, fireCue, idleSelection, paintReading, paintSelection, reduced]);
   useEffect(paintSelection, [paintSelection, selection, eventSelection]);

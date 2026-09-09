@@ -24,6 +24,7 @@ const explorer = await read("EthRings.tsx");
 const odometer = await read("eth-rings/Odometer.tsx");
 const typeOn = await read("eth-rings/TypeOn.tsx");
 const useMotion = await read("eth-rings/use-motion.ts");
+const paperPattern = await read("PaperPattern.tsx");
 const renderer = await read("eth-rings/renderer.ts");
 const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
@@ -473,9 +474,12 @@ test("reads the palette with the geometry, not on every painted frame", () => {
 
 test("guards every timer and frame driven animation behind reduced motion", () => {
   assert.match(useMotion, /useSyncExternalStore\(watchReducedMotion, prefersReducedMotion, \(\) => true\)/);
-  for (const [name, source] of [["TypeOn", typeOn], ["Odometer", odometer], ["EthRings", explorer]]) {
+  for (const [name, source] of [["TypeOn", typeOn], ["Odometer", odometer], ["EthRings", explorer], ["PaperPattern", paperPattern]]) {
     assert.match(source, /useReducedMotion|reduced/, `${name} must consult the reduced-motion preference`);
   }
+  // The paper's reaction is settled before anything is shown, and under
+  // reduced motion it is then drawn once and left alone.
+  assert.match(paperPattern, /if \(settled < SETTLE_STEPS\) \{[\s\S]*?return;\s*\}\s*if \(reduced\) \{[\s\S]*?present\(\);\s*return;\s*\}/);
   assert.match(typeOn, /if \(reduced\) return <span className=\{typedClass\(className\)\}>\{text\}<\/span>/);
   assert.match(explorer, /if \(reduced \|\| revealPlayedRef\.current\) \{\s*\n\s*settle\(\);/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);

@@ -871,7 +871,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           the label opposite states its identity and then its provenance. */}
       <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
         <p className="period-date readout-line" style={readoutStep(0)}><MonthRoll month={selection.month} active={rollNumbers} /> <YearRoll years={archiveYears} year={selection.year} active={rollNumbers} /></p>
-        <p className="price-range readout-line" style={readoutStep(1)}>{priceLow === null || priceHigh === null ? <ReadoutBlank text="No market data" /> : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
+        <p className="price-range readout-line" style={readoutStep(1)}>{priceLow === null || priceHigh === null ? <ReadoutBlank text="No market data" /> : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />{" — "}<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
         <dl className="price-observations"><div className="readout-line" style={readoutStep(2)}><dt>Average</dt><dd>{averagePrice === null ? <ReadoutBlank text="—" /> : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div className="readout-line" style={readoutStep(3)}><dt>Volatility</dt><dd>{volatilityLabel === null ? <ReadoutBlank text="—" /> : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
       </section>
       {/* The plate takes no pointer input while it is being drawn. Running a

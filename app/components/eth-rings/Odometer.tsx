@@ -19,8 +19,11 @@ const DIGITS = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
  * months, digits — and zero for a strip with real ends, like the years. A
  * cyclic tape carries a duplicate of its first cell at the end, so a whole lap
  * can be taken off the position without anything appearing to move.
+ *
+ * `oneWay` is the digits: their tape only ever turns forward, where the tapes
+ * that carry a reading turn whichever way the reading moved. See `aim`.
  */
-type Reel = { node: HTMLElement; lap: number; at: number; to: number; speed: number };
+type Reel = { node: HTMLElement; lap: number; oneWay: boolean; at: number; to: number; speed: number };
 
 // One clock for every counter on the page, started when something has
 // somewhere to go and stopped the moment everything has arrived. A rig of
@@ -77,15 +80,14 @@ function place(reel: Reel) {
  * stylesheet is what this rounds, and what stands if there is no layout yet.
  */
 function pinCells() {
-  const counters = new Set<HTMLElement>();
-  for (const reel of reels) {
-    const counter = reel.node.closest<HTMLElement>(".odo, .odo-month");
-    if (counter) counters.add(counter);
-  }
+  // Every counter on the page, not only the ones with a reel in them: the
+  // words that stand in for a reading ride a cell too, and a cell rounded on
+  // one line and left at its em value on the next puts the two a fifth of a
+  // pixel apart, which is the readout changing height again.
+  const found = [...document.querySelectorAll<HTMLElement>(".odo, .odo-month")];
   // Cleared in one pass and measured in the next, so the whole rig of counters
   // costs one reflow rather than one apiece.
-  for (const counter of counters) counter.style.removeProperty("--odo-cell");
-  const found = [...counters];
+  for (const counter of found) counter.style.removeProperty("--odo-cell");
   const natural = found.map((counter) => counter.querySelector<HTMLElement>(".odo-cell")?.getBoundingClientRect().height ?? 0);
   const device = Math.max(1, window.devicePixelRatio || 1);
   found.forEach((counter, index) => {
@@ -164,14 +166,28 @@ function wake() {
   frame = requestAnimationFrame(run);
 }
 
-/** Aim a reel at a cell. On a cyclic tape, the short way round. */
+/**
+ * Aim a reel at a cell.
+ *
+ * The month and the year are positions in the record, and they take the short
+ * way round: a reading a month earlier turns the tape back a month, because
+ * that is the direction the reading moved. December to January is still one
+ * cell forward rather than eleven back — the short way round a cyclic tape is
+ * the way the record actually ran.
+ *
+ * The figures are not a position in anything. A price tape that turned back
+ * for a lower reading and forward for a higher one read as several mechanisms
+ * disagreeing across one line, so the digits only ever turn forward, like a
+ * flap board: 4 to 3 is nine cells on, not one back.
+ *
+ * Either way the step is taken off the current target rather than the current
+ * position, so a run of readings accumulates in the direction it is actually
+ * travelling instead of restarting.
+ */
 function aim(reel: Reel, value: number, still: boolean) {
   if (reel.lap) {
-    // December to January is one cell forward, not eleven back. Aiming off the
-    // current target rather than the current position keeps a run of steps
-    // accumulating in the direction it is actually travelling.
     let step = (((value - reel.to) % reel.lap) + reel.lap) % reel.lap;
-    if (step > reel.lap / 2) step -= reel.lap;
+    if (!reel.oneWay && step > reel.lap / 2) step -= reel.lap;
     reel.to += step;
   } else {
     reel.to = value;
@@ -192,7 +208,15 @@ function aim(reel: Reel, value: number, still: boolean) {
  * a second, and a counter that never settles is a counter nobody can read, so
  * a scrub lands the reels instead of rolling them.
  */
-function useReel(value: number, lap: number, still: boolean, from: number) {
+/** A counter with no reel in it still carries a cell, and the cell is pinned. */
+function usePinnedCell() {
+  useEffect(() => {
+    watchLayout();
+    schedulePin();
+  }, []);
+}
+
+function useReel(value: number, lap: number, still: boolean, from: number, oneWay = false) {
   const node = useRef<HTMLSpanElement>(null);
   const reel = useRef<Reel | null>(null);
   const hung = useRef(from);
@@ -200,7 +224,7 @@ function useReel(value: number, lap: number, still: boolean, from: number) {
   useEffect(() => {
     const element = node.current;
     if (!element) return;
-    const hanging: Reel = { node: element, lap, at: hung.current, to: hung.current, speed: 0 };
+    const hanging: Reel = { node: element, lap, oneWay, at: hung.current, to: hung.current, speed: 0 };
     reel.current = hanging;
     place(hanging);
     reels.add(hanging);
@@ -210,7 +234,7 @@ function useReel(value: number, lap: number, still: boolean, from: number) {
       reels.delete(hanging);
       reel.current = null;
     };
-  }, [lap]);
+  }, [lap, oneWay]);
 
   useEffect(() => {
     if (reel.current) aim(reel.current, value, still);
@@ -225,7 +249,7 @@ function cyclicCells(labels: readonly string[]) {
 }
 
 function Digit({ digit, still }: { digit: number; still: boolean }) {
-  const node = useReel(digit, DIGITS.length, still, 0);
+  const node = useReel(digit, DIGITS.length, still, 0, true);
   return (
     <span className="odo-slot">
       <span ref={node} className="odo-strip">
@@ -260,6 +284,38 @@ export function Odometer({ value, active }: { value: string; active: boolean }) 
               </span>
             )
         ))}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * A reading that is not there, set in a counter's box.
+ *
+ * The readout says "No market data" until the front crosses into the priced
+ * years, and an em dash where an observation has none. A counter is a cell
+ * tall and carries the line's whole descent below it, so a sentence in its
+ * place made a shorter line box and the block rose by six pixels at the moment
+ * the figures arrived — the strut on those lines reserves the cell but cannot
+ * reserve the descent, which belongs to the counter's own line box.
+ *
+ * So the words ride the slot the figures ride. Nothing here turns: it is one
+ * fixed cell, the same one a currency sign sits in, and the block holds its
+ * height by construction rather than by a reserve kept in step with a box it
+ * is not part of. Under reduced motion no line carries a counter at all, and
+ * the strut is what holds those.
+ */
+export function ReadoutBlank({ text }: { text: string }) {
+  const reduced = useReducedMotion();
+  usePinnedCell();
+  if (reduced) return <span className="odo">{text}</span>;
+
+  return (
+    <span className="odo">
+      <span className="odo-track">
+        <span className="odo-slot odo-slot-fixed">
+          <span className="odo-strip"><span className="odo-cell">{text}</span></span>
+        </span>
       </span>
     </span>
   );

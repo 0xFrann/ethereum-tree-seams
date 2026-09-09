@@ -59,13 +59,18 @@ button { font: inherit; color: inherit; }
 .stage-provenance dt { margin: 0; color: var(--ink-faint); font-size: 11px; font-weight: 400; letter-spacing: .13em; line-height: 1.2; text-transform: uppercase; }
 .stage-provenance dd { margin: 0; min-height: 1.2em; font: 400 15px/1.2 var(--font-interface); letter-spacing: .01em; }
 .stage-price { --odo-strut: 1.32em; --odo-drop: -.48em; top: max(2.4rem, env(safe-area-inset-top)); right: max(2.4rem, env(safe-area-inset-right)); width: min(18rem, 25vw); text-align: right; }
-/* Every line that can carry a counter reserves a counter's box whether or not
+/* Every line that can carry a counter reserves a counter's cell whether or not
    one is in it. A counter is a cell tall and hangs below the baseline, so it
    makes a taller line box than a sentence does — and the readout says "No
    market data" until the growth front crosses into the priced years, so the
    whole block used to drop five pixels at the moment the figures arrived.
    The strut is the nominal cell; the pinned one differs by under a device
-   pixel, and the two ems are declared once, above, for both to read. */
+   pixel, and the two ems are declared once, above, for both to read.
+
+   The strut reserves the cell but not the descent the counter's own line box
+   carries under it, which is why the words that stand in for a reading ride a
+   counter's slot themselves — see `ReadoutBlank`. The strut is what holds the
+   reduced-motion readout, where no line carries a counter at all. */
 .period-date::before, .price-range::before, .price-observations dd::before {
   content: ""; display: inline-block; width: 0; height: var(--odo-strut); vertical-align: var(--odo-drop);
 }
@@ -87,9 +92,29 @@ button { font: inherit; color: inherit; }
    does nothing: the pointer is held off for the whole entrance. */
 .is-drawing .rings-canvas { cursor: default; }
 button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outline-offset: 4px; }
-/* The plate is a disc, so the focus ring follows the rings rather than the canvas box.
-   Every mark the renderer draws sits well inside the inscribed circle, so the clip shows nothing. */
-.rings-canvas:focus-visible { border-radius: 50%; outline: 1px solid var(--accent); outline-offset: 4px; }
+/* The plate is a drawing, not a control: it is not in the tab sequence, and it
+   wears no ring. A ring drawn on the canvas box stood a good deal outside the
+   calendar ring and read as one more circle the specimen had not earned. It is
+   still focusable, because the retry path hands focus to the specimen once it
+   loads, and a programmatic focus after a keypress is enough for a browser to
+   draw its own. */
+.rings-canvas:focus { outline: none; }
+/* How to work the plate, set in the plate's own bottom margin. The drawing
+   reaches 0.45 of the square and the month labels a hair past that, so the
+   caption sits on the paper left under JUL: it travels with the specimen rather
+   than with the page, needs no arrangement of its own at any size, and stays
+   clear of the bottom-centre column the credit already stands in. */
+.rings-hint { position: absolute; bottom: 0; left: 50%; margin: 0; color: var(--ink-faint); font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .13em; text-transform: uppercase; transform: translateX(-50%); white-space: nowrap; pointer-events: none; }
+/* The glyphs carry the instruction and the words only name it, so the arrows
+   are set a size above the label type they sit in. At 12px in Courier they are
+   barely a mark; the pairs also need more air between them than between an
+   arrow and its own word, or the caption reads as one run of four. */
+.rings-hint-keys { margin-right: .55rem; font-size: 17px; letter-spacing: .04em; vertical-align: -.08em; }
+.rings-hint-keys + .rings-hint-keys { margin-left: 2.2rem; }
+/* A touch screen has no arrow keys, and under about 880px of viewport the
+   credit walks up into the plate's margin and leaves no paper for a caption.
+   The keys still work; only the teaching is withdrawn. */
+@media (hover: none), (pointer: coarse), (max-height: 880px) { .rings-hint { display: none; } }
 /* The note sits on the sheet's bottom margin, in line with the credit and the
    outline, and grows upward from there. Its height is still reserved at the
    worst case, so the box itself never moves; only the writing inside it does. */
@@ -203,7 +228,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 /* Each block waits for its own beat of the score. The delays that used to live
    here are gone: timing belongs in the score, not scattered across CSS, or the
    page arrives as several animations that merely happen to overlap. */
-.stage-price, .selected-mark, .stage-more, .stage-credit, .growth-frontier { opacity: 0; }
+.stage-price, .selected-mark, .stage-more, .stage-credit, .growth-frontier, .rings-hint { opacity: 0; }
 /* The readout arrives line by line rather than as one block, so that the two
    upper corners of the sheet are both being made rather than one of them being
    written while the other is simply already there. The lines carry the
@@ -214,6 +239,9 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .is-note .selected-mark { opacity: 1; transition: opacity .4s ease; }
 .is-note .stage-more { opacity: 1; transition: opacity .4s ease; }
 .is-note .stage-credit { opacity: 1; transition: opacity .4s ease; }
+/* The caption is an annotation, not a prompt: it arrives at the weight it
+   keeps, faint from the first breath, and stays as the legend for the keys. */
+.is-note .rings-hint { opacity: .45; transition: opacity .4s ease; }
 
 /* Tier 2. A committed change to the note wipes; a hover swaps in place. */
 @keyframes wipe-in { from { opacity: 0; transform: translateY(.28rem); } to { opacity: 1; transform: none; } }

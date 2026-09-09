@@ -39,6 +39,46 @@ test("keeps semantic event selection while canvas marks inherit their month inte
   assert.match(explorer, /<EventNote item=\{selectedEvent\}/);
 });
 
+test("reads the plate from the document's arrow keys rather than from a tab stop", () => {
+  // A focus ring on the canvas box stood well outside the calendar ring and
+  // read as one more circle the specimen had not earned.
+  assert.match(explorer, /aria-roledescription="interactive chart" tabIndex=\{-1\}/);
+  assert.doesNotMatch(explorer, /tabIndex=\{0\}/);
+  assert.doesNotMatch(globalStyles, /rings-canvas:focus-visible/);
+  assert.match(globalStyles, /\.rings-canvas:focus \{ outline: none; \}/);
+  // Still focusable, because the retry path hands focus to the loaded specimen.
+  assert.match(explorer, /entryTargetRef\.current = node/);
+  assert.match(explorer, /document\.addEventListener\("keydown", handleArrowKey\)/);
+  assert.match(explorer, /document\.removeEventListener\("keydown", handleArrowKey\)/);
+  // An open sheet owns the keyboard, including the arrows that scroll its body.
+  assert.match(explorer, /if \(dialog\) return;/);
+  // A modified arrow is a browser shortcut; a focused control owns its own keys.
+  assert.match(explorer, /if \(event\.metaKey \|\| event\.ctrlKey \|\| event\.altKey \|\| event\.shiftKey\) return;/);
+  assert.match(explorer, /closest\("button, a\[href\]/);
+  // The reading comes from the ref, not from a closure: a listener that
+  // depended on the selection would re-register per frame of a pointer scrub.
+  assert.match(explorer, /const selection = selectionRef\.current;/);
+  // The arrow keys are the description's business, not the name's: the name is
+  // read on every landing and would recite them every time.
+  assert.match(explorer, /id="rings-instructions" className="sr-only">Arrow keys/);
+  assert.doesNotMatch(explorer, /aria-label=\{`Interactive Ethereum annual rings[^`]*arrows/);
+});
+
+test("teaches the arrow keys in the plate's own margin", () => {
+  assert.match(explorer, /<p className="rings-hint" aria-hidden="true">/);
+  // The glyphs carry the instruction, so they are set above the label type the
+  // words are in; at 12px in Courier an arrow is barely a mark.
+  assert.match(explorer, /<span className="rings-hint-keys">← →<\/span>Months<span className="rings-hint-keys">↑ ↓<\/span>Years/);
+  assert.match(globalStyles, /\.rings-hint-keys \{[^}]*font-size: 17px;/);
+  assert.match(globalStyles, /\.rings-hint-keys \+ \.rings-hint-keys \{ margin-left: 2\.2rem; \}/);
+  // A caption on the plate: it travels with the specimen and never takes the
+  // pointer off it.
+  assert.match(globalStyles, /\.rings-hint \{[^}]*position: absolute;[^}]*pointer-events: none;/);
+  // No arrow keys on a touch screen, and no paper for a caption once the credit
+  // has walked up into the plate's margin.
+  assert.match(globalStyles, /@media \(hover: none\), \(pointer: coarse\), \(max-height: 880px\) \{ \.rings-hint \{ display: none; \} \}/);
+});
+
 test("puts the formerly scrolling content behind labelled accessible dialogs", () => {
   assert.match(explorer, /createPortal/);
   assert.match(explorer, /stage\?\.setAttribute\("inert", ""\)/);

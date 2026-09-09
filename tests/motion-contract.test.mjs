@@ -92,6 +92,12 @@ test("keeps every beat on the one clock", () => {
   // No stray delays in the stylesheet competing with the score.
   assert.doesNotMatch(styles, /\.is-\w+ \.[\w-]+ \{ opacity: 1; transition: opacity [\d.]+s ease \.\d+s/);
   assert.doesNotMatch(styles, /is-annotated/);
+  // The keyboard caption is annotation: it arrives on the note's beat with the
+  // rest of the margin, carries no timing of its own, and arrives at the faint
+  // weight it keeps rather than announcing itself and then standing down.
+  assert.match(styles, /\.stage-price, \.selected-mark, \.stage-more, \.stage-credit, \.growth-frontier, \.rings-hint \{ opacity: 0; \}/);
+  assert.match(styles, /\.is-note \.rings-hint \{ opacity: \.45; transition: opacity \.4s ease; \}/);
+  assert.doesNotMatch(styles, /\.rings-hint \{[^}]*transition-delay/);
   // The live edge belongs to the finished specimen, not to an empty sheet: it
   // marks the outermost ring as still growing in reality, which only reads
   // once that ring exists to grow from.
@@ -380,8 +386,14 @@ test("holds the pointer off the plate while it is being drawn", () => {
   // when a reader takes the plate over deliberately.
   assert.match(explorer, /setRolling\(true\);/);
   assert.match(explorer, /setRolling\(false\);/);
-  // The keyboard stays live: a keypress is deliberate.
-  assert.match(explorer, /onKeyDown=\{handleCanvasKeyDown\}/);
+  // The keyboard stays live: a keypress is deliberate. It is the document's
+  // keyboard now rather than the plate's, because the plate is not a tab stop.
+  assert.match(explorer, /document\.addEventListener\("keydown", handleArrowKey\)/);
+  assert.doesNotMatch(explorer, /onKeyDown=/);
+  // A held arrow is a scan, not thirty commitments: it must not re-wipe the
+  // note thirty times a second. It lands as one reading on release.
+  assert.match(explorer, /selectMarket\(next, !event\.repeat\)/);
+  assert.match(explorer, /document\.addEventListener\("keyup", landReading\)/);
   // And a crosshair over an inert plate invites a click that does nothing.
   assert.match(styles, /\.is-drawing \.rings-canvas \{ cursor: default; \}/);
 });
@@ -397,8 +409,9 @@ test("keeps the blocks that change with the data from resizing the page", () => 
   assert.match(styles, /\.selected-mark \{[^}]*min-height: 178px/);
   // Scars are hidden for now, so the note reserves only what milestones need.
   assert.match(styles, /\.selected-mark h2 \+ p \{[^}]*-webkit-line-clamp: 4/);
-  // A month with no reading must not collapse the observations block.
-  assert.match(explorer, /averagePrice === null \? "—"/);
+  // A month with no reading must not collapse the observations block — and the
+  // dash stands in a counter's slot, so the line keeps a counter's height too.
+  assert.match(explorer, /averagePrice === null \? <ReadoutBlank text="—" \/>/);
 });
 
 test("reserves motion for arrival and commitment, never for a hover scrub", () => {
@@ -414,7 +427,7 @@ test("reserves motion for arrival and commitment, never for a hover scrub", () =
   // rather than switching to a second rendering, or a commit would have
   // nothing to roll from.
   assert.match(odometer, /if \(still\) land\(reel\);/);
-  assert.match(odometer, /useReel\(digit, DIGITS\.length, still, 0\)/);
+  assert.match(odometer, /useReel\(digit, DIGITS\.length, still, 0, true\)/);
 });
 
 test("answers a scrub once a frame rather than once a pointer event", () => {
@@ -498,9 +511,16 @@ test("rolls the reading on one spring rather than a transition per change", () =
   // The month tape comes back round, so December to January is one cell
   // forward rather than eleven back, and a lap can be taken off the position
   // against the duplicate first cell without anything appearing to move.
-  assert.match(odometer, /if \(step > reel\.lap \/ 2\) step -= reel\.lap/);
+  assert.match(odometer, /if \(!reel\.oneWay && step > reel\.lap \/ 2\) step -= reel\.lap/);
   assert.match(odometer, /function cyclicCells/);
   assert.match(odometer, /reel\.at -= laps \* reel\.lap/);
+  // The month and the year are positions in the record and turn whichever way
+  // the reading moved; the figures are not, and a price tape that turned back
+  // for a lower reading read as several mechanisms disagreeing across one
+  // line. Only the digits are one-way.
+  assert.match(odometer, /useReel\(digit, DIGITS\.length, still, 0, true\)/);
+  assert.match(odometer, /useReel\(month, MONTHS\.length, reduced \|\| !active, 0\)/);
+  assert.match(odometer, /useReel\(index, 0, reduced \|\| !active, 0\)/);
   // A background tab issues no frames; rolling through the gap on return
   // would spend it showing numbers that are wrong rather than merely still.
   assert.match(odometer, /if \(seconds > STALL_SECONDS\) land\(reel\)/);
@@ -548,7 +568,13 @@ test("pins the counter cell to a whole device pixel", () => {
   assert.match(odometer, /window\.addEventListener\("resize", schedulePin\)/);
   assert.match(odometer, /document\.fonts\?\.ready\.then\(schedulePin\)/);
   // Cleared in one pass and measured in the next, so the rig costs one reflow.
-  assert.match(odometer, /for \(const counter of counters\) counter\.style\.removeProperty\("--odo-cell"\);/);
+  assert.match(odometer, /for \(const counter of found\) counter\.style\.removeProperty\("--odo-cell"\);/);
+  // Every counter, not only the ones with a reel: a cell rounded on the line
+  // that carries figures and left at its em value on the line that says there
+  // are none puts the two a fifth of a pixel apart, and the readout changes
+  // height again — so the blank asks for the same pin when it mounts.
+  assert.match(odometer, /document\.querySelectorAll<HTMLElement>\("\.odo, \.odo-month"\)/);
+  assert.match(odometer, /function usePinnedCell/);
 });
 
 test("makes both upper corners of the sheet arrive rather than one of them", () => {
@@ -586,6 +612,19 @@ test("holds the readout's height whether or not a line carries a counter", () =>
   assert.match(styles, /vertical-align: var\(--odo-drop, -\.48em\)/);
   assert.equal([...styles.matchAll(/--odo-strut: /g)].length, 1);
   assert.equal([...styles.matchAll(/--odo-drop: /g)].length, 1);
+
+  // The strut reserves the cell, but not the descent the counter's own line
+  // box carries under it: a sentence where the figures go still made a line
+  // six pixels shorter, and the readout stepped when the data arrived. The
+  // words that stand in for a reading ride a counter's slot themselves, so the
+  // two states are the same box rather than two boxes kept in step.
+  assert.match(odometer, /export function ReadoutBlank/);
+  assert.match(odometer, /<span className="odo-slot odo-slot-fixed">\s*<span className="odo-strip"><span className="odo-cell">\{text\}<\/span><\/span>/);
+  assert.match(explorer, /priceLow === null \|\| priceHigh === null \? <ReadoutBlank text="No market data" \/>/);
+  assert.match(explorer, /averagePrice === null \? <ReadoutBlank text="—" \/>/);
+  assert.match(explorer, /volatilityLabel === null \? <ReadoutBlank text="—" \/>/);
+  // Under reduced motion no line carries a counter, and the strut holds those.
+  assert.match(odometer, /if \(reduced\) return <span className="odo">\{text\}<\/span>;/);
 });
 
 test("shows the unfinished outer ring as the one piece of ambient motion", () => {

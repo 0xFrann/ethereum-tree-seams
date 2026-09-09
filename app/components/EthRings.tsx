@@ -7,7 +7,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type KeyboardEvent,
   type ReactNode,
   type RefObject,
 } from "react";
@@ -65,7 +64,7 @@ import {
   READOUT_STEP_MS,
   type ChainLink,
 } from "./eth-rings/motion";
-import { Odometer, MonthRoll, YearRoll } from "./eth-rings/Odometer";
+import { Odometer, MonthRoll, YearRoll, ReadoutBlank } from "./eth-rings/Odometer";
 import { TypeOn, WipeIn } from "./eth-rings/TypeOn";
 import { useReducedMotion } from "./eth-rings/use-motion";
 
@@ -344,6 +343,8 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     setCues(cueRef.current);
   }, []);
   const [noteSettled, setNoteSettled] = useState(false);
+  // An auto-repeat is one act held down, not thirty deliberate ones.
+  const arrowHeldRef = useRef(false);
   // Tier 2 is every deliberate change. `announceSelection` already separates a
   // committed selection from a hover, so it doubles as the motion gate.
   const [commitSeq, setCommitSeq] = useState(0);
@@ -765,31 +766,72 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       .sort((left, right) => left.year - right.year);
   }, [data.years]);
 
-  const handleCanvasKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
-    const years = selectableYears();
-    if (!years.length) return;
-    const currentYearIndex = Math.max(0, years.findIndex((entry) => entry.year === selection.year));
-    const available = years[currentYearIndex].months;
-    const currentIndex = Math.max(0, available.indexOf(selection.month));
-    const next = { year: years[currentYearIndex].year, month: selection.month };
-    if (event.key === "ArrowRight") next.month = available[(currentIndex + 1) % available.length];
-    else if (event.key === "ArrowLeft") next.month = available[(currentIndex + available.length - 1) % available.length];
-    else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-      const nextYearIndex = Math.max(0, Math.min(years.length - 1, currentYearIndex + (event.key === "ArrowUp" ? 1 : -1)));
-      const targetMonths = years[nextYearIndex].months;
-      next.year = years[nextYearIndex].year;
-      // A ghost year may carry a single mark; land on its closest month so the
-      // reading stays on the same side of the ring.
-      next.month = targetMonths.includes(next.month)
-        ? next.month
-        : targetMonths.reduce((best, month) =>
-          Math.abs(month - next.month) < Math.abs(best - next.month) ? month : best, targetMonths[0]);
-    } else if (event.key === "Home") next.month = available[0];
-    else if (event.key === "End") next.month = available.at(-1)!;
-    else return;
-    event.preventDefault();
-    selectMarket(next, true);
-  };
+  /**
+   * The arrow keys, read from the document rather than from the plate.
+   *
+   * The plate is a drawing, not a control: it takes no place in the tab
+   * sequence and wears no ring, so it can never be the target of a keypress,
+   * and a handler on the element would fire only where something had focused
+   * it programmatically. Nothing else on the sheet wants an arrow — the page
+   * does not scroll, and everything tabbable is a button or a link — so an
+   * unmodified arrow anywhere on the page is a reader moving the reading.
+   *
+   * Two things do own these keys and are handed them back: an open sheet,
+   * which scrolls its own body with them, and any control the reader has
+   * deliberately put focus on.
+   */
+  useEffect(() => {
+    if (dialog) return;
+    const handleArrowKey = (event: globalThis.KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.target instanceof Element && event.target.closest("button, a[href], input, select, textarea, [contenteditable]")) return;
+      const years = selectableYears();
+      if (!years.length) return;
+      // Read from the ref, not from state: a listener that depended on the
+      // selection would be torn down and rebuilt on every frame of a scrub.
+      const selection = selectionRef.current;
+      const currentYearIndex = Math.max(0, years.findIndex((entry) => entry.year === selection.year));
+      const available = years[currentYearIndex].months;
+      const currentIndex = Math.max(0, available.indexOf(selection.month));
+      const next = { year: years[currentYearIndex].year, month: selection.month };
+      if (event.key === "ArrowRight") next.month = available[(currentIndex + 1) % available.length];
+      else if (event.key === "ArrowLeft") next.month = available[(currentIndex + available.length - 1) % available.length];
+      else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        const nextYearIndex = Math.max(0, Math.min(years.length - 1, currentYearIndex + (event.key === "ArrowUp" ? 1 : -1)));
+        const targetMonths = years[nextYearIndex].months;
+        next.year = years[nextYearIndex].year;
+        // A ghost year may carry a single mark; land on its closest month so the
+        // reading stays on the same side of the ring.
+        next.month = targetMonths.includes(next.month)
+          ? next.month
+          : targetMonths.reduce((best, month) =>
+            Math.abs(month - next.month) < Math.abs(best - next.month) ? month : best, targetMonths[0]);
+      } else if (event.key === "Home") next.month = available[0];
+      else if (event.key === "End") next.month = available.at(-1)!;
+      else return;
+      event.preventDefault();
+      // A held key is a scan, not thirty readings: it moves the plate the way a
+      // pointer scrub does, with the counters landing rather than rolling and
+      // the note perfectly still, and lands as one reading on release.
+      arrowHeldRef.current = event.repeat;
+      selectMarket(next, !event.repeat);
+    };
+    const landReading = (event: globalThis.KeyboardEvent) => {
+      if (!arrowHeldRef.current || !event.key.startsWith("Arrow")) return;
+      arrowHeldRef.current = false;
+      setAnnounceSelection(true);
+      setCommitSeq((value) => value + 1);
+    };
+    document.addEventListener("keydown", handleArrowKey);
+    document.addEventListener("keyup", landReading);
+    return () => {
+      document.removeEventListener("keydown", handleArrowKey);
+      document.removeEventListener("keyup", landReading);
+      // A sheet opened mid-hold takes the keyup with it, and the next release
+      // is not this reader's landing.
+      arrowHeldRef.current = false;
+    };
+  }, [dialog, selectMarket, selectableYears]);
 
   const periodLabel = `${MONTHS[selection.month]} ${selection.year}`;
   const hasDetailedPriceStats = month && Number.isFinite(month.averageClose) && Number.isFinite(month.low) && Number.isFinite(month.high);
@@ -810,23 +852,30 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
           the label opposite states its identity and then its provenance. */}
       <section className="stage-price" aria-label={`${periodLabel}. ${priceSummary}`}>
         <p className="period-date readout-line" style={readoutStep(0)}><MonthRoll month={selection.month} active={rollNumbers} /> <YearRoll years={archiveYears} year={selection.year} active={rollNumbers} /></p>
-        <p className="price-range readout-line" style={readoutStep(1)}>{priceLow === null || priceHigh === null ? "No market data" : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
-        <dl className="price-observations"><div className="readout-line" style={readoutStep(2)}><dt>Average</dt><dd>{averagePrice === null ? "—" : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div className="readout-line" style={readoutStep(3)}><dt>Volatility</dt><dd>{volatilityLabel === null ? "—" : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
+        <p className="price-range readout-line" style={readoutStep(1)}>{priceLow === null || priceHigh === null ? <ReadoutBlank text="No market data" /> : <><Odometer value={priceUsd(priceLow)} active={rollNumbers} />—<Odometer value={priceUsd(priceHigh)} active={rollNumbers} /></>}</p>
+        <dl className="price-observations"><div className="readout-line" style={readoutStep(2)}><dt>Average</dt><dd>{averagePrice === null ? <ReadoutBlank text="—" /> : <Odometer value={priceUsd(averagePrice)} active={rollNumbers} />}</dd></div><div className="readout-line" style={readoutStep(3)}><dt>Volatility</dt><dd>{volatilityLabel === null ? <ReadoutBlank text="—" /> : <Odometer value={volatilityLabel} active={rollNumbers} />}</dd></div></dl>
       </section>
       {/* The plate takes no pointer input while it is being drawn. Running a
           cursor over a specimen that is still growing is not a reading being
           taken, and treating it as one used to cancel the rest of the score.
           The keyboard is left live: a keypress is deliberate. */}
       <div className="graph-stage">
-        <canvas ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={0}
-          aria-label={`Interactive Ethereum annual rings. Selected ${periodLabel}; ${priceSummary} Use left and right arrows for months on this ring, up and down arrows for years.`}
-          aria-describedby="rings-instructions rings-readout" onKeyDown={handleCanvasKeyDown}
+        {/* Not a tab stop, and it wears no ring: the plate is a drawing. The
+            negative index keeps it focusable all the same, because the retry
+            path hands focus to the specimen once it finally loads. */}
+        <canvas ref={(node) => { canvasRef.current = node; entryTargetRef.current = node; }} className="rings-canvas" role="group" aria-roledescription="interactive chart" tabIndex={-1}
+          aria-label={`Interactive Ethereum annual rings. Selected ${periodLabel}; ${priceSummary}`}
+          aria-describedby="rings-instructions rings-readout"
           onPointerLeave={(event) => { if (rolling || event.pointerType !== "mouse") return; endScrub(); restoreIdleSelection(); }}
           onPointerMove={(event) => { if (rolling || event.pointerType !== "mouse") return; scrub(event.clientX, event.clientY); }}
           onPointerDown={(event) => { if (rolling) return; endScrub(); const next = interactionAt(event.clientX, event.clientY); if (next) selectMarket(next, true); }}>
           Ethereum annual-ring market chart. Equivalent period and event controls are available around the chart.
         </canvas>
-        <p id="rings-instructions" className="sr-only">Trace the grain. Hover or tap to read a month. Select a knot for its note.</p>
+        <p id="rings-instructions" className="sr-only">Arrow keys read the plate: left and right for the months on a ring, up and down for years. Hover or tap to read a month. Select a knot for its note.</p>
+        {/* The same instruction, set as a caption in the plate's own bottom
+            margin. It is hidden from assistive technology: the description
+            above already says it in words, and glyphs do not read aloud. */}
+        <p className="rings-hint" aria-hidden="true"><span className="rings-hint-keys">← →</span>Months<span className="rings-hint-keys">↑ ↓</span>Years</p>
         {/* The outer ring is unfinished, and nothing on the plate showed it
             until now. One slow breath at the growing edge. */}
         <span ref={frontierRef} className="growth-frontier" aria-hidden="true" />

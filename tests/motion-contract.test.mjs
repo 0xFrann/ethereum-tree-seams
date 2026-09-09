@@ -433,7 +433,13 @@ test("reserves motion for arrival and commitment, never for a hover scrub", () =
   // The entrance rolls throughout, but that is the reading being taken.
   assert.match(explorer, /const rollNumbers = !reduced && cues\.readout && \(announceSelection \|\| rolling\)/);
   assert.match(explorer, /if \(announce\) setCommitSeq\(\(value\) => value \+ 1\)/);
-  assert.match(explorer, /<WipeIn wipeKey=\{String\(commitSeq\)\}>/);
+  assert.match(explorer, /<WipeIn wipeKey=\{String\(noteWipe\.seq\)\}>/);
+  // And commitment alone is not enough: the note has to have something new to
+  // say. Most months carry no knot, so stepping from one of them to the next
+  // used to replay the arrival over the same two lines — a flicker in place.
+  // The wipe is keyed to the note's content as well as to the commit.
+  assert.match(explorer, /const noteKey = selectedEvent \? `\$\{selectedEvent\.kind\}:\$\{selectedEvent\.record\.id\}` : "none"/);
+  assert.match(explorer, /if \(noteWipe\.key !== noteKey\) setNoteWipe\(\{ seq: commitSeq, key: noteKey \}\)/);
   // Scrubbing must not re-strike the note.
   assert.match(explorer, /firstPass=\{!noteSettled\}/);
   // Tier 3 is the same reels with nowhere to travel: they land on arrival

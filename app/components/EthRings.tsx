@@ -406,6 +406,22 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const selectedEvent = (eventSelection
     ? timelineEvents.find((item) => item.kind === eventSelection.kind && item.record.id === eventSelection.id) ?? null
     : null) ?? selectedMonthEvents[0] ?? null;
+  // What the note actually says: a knot's own record, or the one sentence every
+  // month without a knot carries.
+  const noteKey = selectedEvent ? `${selectedEvent.kind}:${selectedEvent.record.id}` : "none";
+  // The note wipes when a committed reading gives it something new to say, not
+  // merely because a reading was committed. Most months carry no knot, so
+  // stepping from one of them to the next left the same two lines on the sheet
+  // and played the arrival over them anyway — a flicker in place, which reads as
+  // the page repainting rather than as a note being written. The wipe is keyed
+  // to the note's content as well as to the commit, and stands still while only
+  // the second of the two has changed.
+  //
+  // Holding the key to the commit is what keeps a hover scrub silent: crossing a
+  // knot changes what the note says, and Tier 3 swaps those words in place with
+  // no motion at all.
+  const [noteWipe, setNoteWipe] = useState({ seq: commitSeq, key: noteKey });
+  if (noteWipe.key !== noteKey) setNoteWipe({ seq: commitSeq, key: noteKey });
 
   const marketForEvent = useCallback((nextEvent: EventSelection) => {
     if (!nextEvent) return null;
@@ -900,7 +916,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         <span ref={frontierRef} className="growth-frontier" aria-hidden="true" />
       </div>
       <aside id="rings-readout" className="selected-mark" aria-label="Selected ring segment">
-        <WipeIn wipeKey={String(commitSeq)}>
+        <WipeIn wipeKey={String(noteWipe.seq)}>
           {selectedEvent ? <EventNote item={selectedEvent} strike={announceSelection} /> : <><p className="edge-label">Selected ring segment</p><p><NoteLine text="No recorded events this month." annotate={cues.note} firstPass={!noteSettled} onTyped={() => setNoteSettled(true)} /></p></>}
         </WipeIn>
       </aside>

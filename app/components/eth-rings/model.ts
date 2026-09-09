@@ -1,6 +1,6 @@
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"] as const;
 
-export type MonthRecord = {
+type MonthRecord = {
   month: number;
   open: number;
   close: number;
@@ -11,7 +11,7 @@ export type MonthRecord = {
   volumeWeight: number;
 };
 
-export type YearRecord = {
+type YearRecord = {
   year: number;
   firstDate: string;
   lastDate: string;
@@ -40,21 +40,6 @@ export type Milestone = {
   activation?: string;
 };
 
-export type Scar = {
-  id: string;
-  date: string;
-  name: string;
-  summary: string;
-  affectedLayer: string;
-  grossUsdAtIncident: number;
-  reportedImpact: string;
-  recoveryStatus: string;
-  sourceUrl: string;
-  confidence: string;
-  visualMagnitude: number;
-  healingState: "healed" | "closed" | "open";
-};
-
 export type MarketData = {
   period: string;
   chronology: {
@@ -79,14 +64,10 @@ export type MarketData = {
   methodology: { price: string; volume: string; caveat: string };
   years: YearRecord[];
   milestones: Milestone[];
-  scars: Scar[];
 };
 
 // A segment is a calendar month, whether it is backed by a market contour or
 // solely by a chronology mark in the unpriced interval.
 export type Selection = { year: number; month: number };
 
-export type EventSelection =
-  | { kind: "milestone"; id: string }
-  | { kind: "scar"; id: string }
-  | null;
+export type EventSelection = { kind: "milestone"; id: string } | null;

@@ -1,83 +1,101 @@
 # Ethereum Annual Rings
 
-Ethereum Annual Rings is an interactive botanical specimen plate for Ethereum's market history. Each annual contour maps one Bitstamp ETH/USD year: price shapes the ring, trading volume changes its weight, protocol milestones appear as embedded knots, and sourced ecosystem security incidents appear as magnitude-scaled scars.
+Ethereum's market history, read the way a dendrochronologist reads a tree. Every ring is one year of ETH/USD trading: the price draws the ring's shape, the volume sets its weight, and the protocol's milestones sit in the grain as knots.
 
-The chronology begins at Ethereum genesis on 30 July 2015. Because the chosen single-market series starts on 9 November 2017, the specimen truthfully renders the earlier interval as unpriced growth rather than silently stitching exchanges. The current year remains visibly open.
+**Live:** https://0xfrann.github.io/ethereum-tree-seams/
+
+[![The specimen plate: ten annual rings with their milestone knots, a month index around the edge, and the readout for September 2026](docs/media/specimen.jpg)](https://0xfrann.github.io/ethereum-tree-seams/)
 
 ## Reading the specimen
 
-- **Angle** is calendar time, beginning at twelve o'clock and moving clockwise.
-- **Ring shape** is four close-price samples per observed month, log-transformed within each year.
-- **Weight** is average daily USD volume, normalized across the visible period.
-- **Knots** are selected Ethereum protocol milestones; Frontier is the chronology origin.
-- **Scars** are selected Ethereum-ecosystem incidents. Their fixed log scale represents a documented USD estimate from $1 million to a capped $1.5 billion, with recovery caveats retained in the readout.
+- **Angle** is calendar time. A year starts at twelve o'clock and runs clockwise.
+- **Ring shape** is the price: four close samples per month, log-transformed within the year, so each ring shows its own year's rhythm rather than absolute dollars.
+- **Ring weight** is the average daily USD volume, normalised across the whole period.
+- **Knots** are Ethereum protocol milestones, from Frontier at the centre to the latest upgrade.
+- **The outer edge** is the unfinished present. The current year stays visibly open.
 
-The artwork communicates rhythm and chronology, not directly comparable absolute prices. Selecting any observed month or event reveals exact values and sourced context.
+The chronology starts at genesis on 30 July 2015. The single-market price series starts on 9 November 2017, so the two earlier years are drawn as unpriced grain rather than stitched together from other exchanges. Selecting any month or knot shows the exact figures and the source behind them.
 
-## Architecture
+## How it is built
 
-Visitors make one same-origin request to `/api/market-data`. That endpoint only reads the shared `MARKET_CACHE` R2 object; it never calls the provider. A Cloudflare hourly scheduled handler fetches the CryptoDataDownload Bitstamp CSV once, validates and aggregates it, and atomically replaces the single last-known-good payload. Provider failures preserve the existing cache, while an uninitialized cache returns a clear `503`.
+| Layer | Choice |
+| --- | --- |
+| Framework | Next.js 16 (App Router, static export), React 19, TypeScript |
+| Rendering | A high-DPI `<canvas>` for the plate, semantic HTML for the readout and controls |
+| Data | One build-time fetch of the Bitstamp ETH/USD daily CSV from CryptoDataDownload, aggregated into a single JSON document |
+| Hosting | GitHub Pages, rebuilt daily by GitHub Actions |
+| Tests | `node:test`, no framework |
 
-The browser renders a high-DPI Canvas specimen with deterministic event geometry and semantic HTML controls/readouts alongside it. Event records and their source metadata live separately from the market series.
+There is no server. `build/fetch-market-data.mjs` runs before every build, validates and aggregates the upstream file, and writes `public/market-data.json`. The page preloads that file and draws from it, so a visitor's request never reaches the data provider. The deploy workflow runs on a schedule; if the upstream fetch fails, the build fails and the previously published site stays up with its last good data.
 
-## Run locally
+The renderer caps the device-pixel ratio, caches the static artwork, and redraws only the selection layer during interaction. The entrance is choreographed on one clock and honours reduced-motion preferences.
 
-Requires Node.js 22.13 or newer.
+## Accessibility
+
+Everything on the plate can be reached without a pointer. Left and right arrows move through months, up and down move through years, and Home and End jump within a year. Knots are also listed as ordinary buttons, the readout is live-announced, the canvas has a text alternative, and focus is always visible.
+
+## Run it locally
+
+Requires Node.js 22.13 or newer and pnpm.
 
 ```bash
-pnpm install --frozen-lockfile
+pnpm install
 pnpm dev
 ```
 
-In another terminal, seed the local R2 cache through the scheduled handler:
+The first run fetches the market data once. Refresh it at any time with:
 
 ```bash
-curl "http://localhost:3000/cdn-cgi/handler/scheduled?format=json"
+pnpm run data
 ```
 
-Then open `http://localhost:3000`. Local R2 state is stored by Wrangler outside the committed application data.
-
-Run every repository check with:
+Other scripts:
 
 ```bash
-pnpm run test:all
+pnpm run build       # static export to out/
+pnpm run start       # serve out/ locally
+pnpm run test:unit   # unit tests, no build needed
+pnpm run test:all    # lint, typecheck, build, and every test
 ```
+
+## Deploying
+
+The `Deploy` workflow publishes `out/` to GitHub Pages on every push to `main`, on a daily schedule, and on demand. Enable Pages with the "GitHub Actions" source in the repository settings and it works as is. For a custom domain or a user site, set `BASE_PATH` to an empty string in the workflow. The same export deploys unchanged to Vercel or any static host.
 
 ## Project structure
 
 ```text
 app/
-  api/market-data/route.ts       Cache-only application endpoint
-  components/EthRings.tsx       Explorer state, controls, and readout
-  components/eth-rings/         Model, event geometry, and Canvas renderer
+  layout.tsx                     Metadata, self-hosted type, data preload
+  page.tsx                       The single page
+  components/EthRings.tsx        Explorer state, keyboard and pointer input, readout, dialogs
+  components/eth-rings/
+    renderer.ts                  Canvas geometry and every drawing pass
+    event-geometry.ts            Date-to-angle mapping, knot placement, hit regions
+    motion.ts                    The entrance score: one timing table for every beat
+    Odometer.tsx, TypeOn.tsx     Readout counters and typed-on text
+    model.ts, format.ts          Types and number formatting
 lib/
-  event-data.mjs                Sourced milestone and scar records
-  market-data.mjs               Provider parsing, validation, and aggregation
-  market-cache.mjs              Last-known-good R2 cache boundary
-worker/index.ts                  Visitor routing and hourly scheduled refresh
-docs/research/                  Source investigations and decision record
-docs/design/                    Approved visual and interaction contracts
-docs/qa/                        Baseline, final screenshots, and audits
-tests/                           Data, cache, geometry, explorer, and SSR tests
+  market-data.mjs                CSV parsing, validation, and aggregation
+  event-data.mjs                 Sourced milestone records
+build/
+  fetch-market-data.mjs          Build-time data fetch
+docs/
+  engineering/                   The data pipeline
+  research/                      Source investigation, milestone research, data decisions
+  design/                        The visual system and knot geometry
+tests/                           Unit tests, plus one suite that checks the static export
 ```
 
-## Data boundaries and limitations
+## Data boundaries
 
-- Market source: CryptoDataDownload's Bitstamp ETH/USD daily file. Its terms govern the market data independently of this repository's MIT-licensed code.
-- Coverage begins 9 November 2017; 30 July 2015–8 November 2017 is deliberately marked unpriced.
-- The 2017 ring is partial, and the current year is partial until complete.
-- The upstream file currently omits 22 May 2026; the API discloses this in `source.gaps` instead of interpolating it.
-- Protocol milestones and security scars are editorially selected, sourced context—not claims that an event caused market movement and not a comprehensive incident database.
-- Reported exploit values use differing contemporary valuation bases. The UI discloses recoveries and caveats, and the visual scale is intentionally capped.
+- Market data is CryptoDataDownload's Bitstamp ETH/USD daily file, under its own terms. Coverage starts on 9 November 2017; earlier years are deliberately unpriced.
+- The 2017 ring is partial, and so is the current year until it closes.
+- Days missing from the upstream file are disclosed in the document's `source.gaps` and never interpolated.
+- Milestones are an editorial selection of protocol events with a source, a checked date, and a confidence note each. They are context, not claims about what moved the market.
 
-See [the research decision gate](docs/research/decision-gate.md) and [the cache note](docs/engineering/hourly-cache.md) for the full rationale.
+See [the data decisions](docs/research/data-decisions.md) and [the data pipeline](docs/engineering/data-pipeline.md) for the reasoning.
 
-## Accessibility and performance
+## Author and license
 
-The Canvas supports pointer, touch, and keyboard input. Left/right selects observed months, up/down changes year, and Home/End jumps within a year. Equivalent semantic event buttons, a fixed readout, a concise text alternative, visible focus, skip behavior, and reduced-motion styling keep the visualization usable without precision pointing or animation.
-
-The renderer caps device-pixel ratio, caches the static artwork, and redraws only the interaction layer during selection. Visitor traffic cannot increase upstream request volume.
-
-## Sources and license
-
-Source code is available under the [MIT License](LICENSE). Every visible milestone and scar retains its source URL, source type, checked date, and confidence note in `lib/event-data.mjs`; market data remains subject to the provider's terms.
+Made by [Frann Dalmasso](https://www.linkedin.com/in/franndalmasso). Code is released under the [MIT License](LICENSE); the market data stays subject to the provider's terms.

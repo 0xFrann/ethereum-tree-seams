@@ -37,7 +37,8 @@ const DRIFT_RATE = 0.001;
 // six bits each. SETTLE_STEPS are run, unseen, before the first frame to
 // take the quantisation out of it. The reaction is then stepped by wall-clock
 // time rather than by frame, so it runs at the same pace on every refresh rate.
-const SEED_URL = "/turing-seed.png";
+// Prefixed with the base path so a GitHub Pages project site still finds it.
+const SEED_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/turing-seed.png`;
 const SEED_V_SCALE = 2;
 const SETTLE_STEPS = 24;
 const STEPS_PER_MS = 0.5;

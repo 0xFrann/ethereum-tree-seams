@@ -98,11 +98,6 @@ test("puts the formerly scrolling content behind labelled accessible dialogs", (
   assert.doesNotMatch(explorer, /className="event-index"|className="methodology"/);
 });
 
-test("keeps scars out of the visible and selectable explorer UI", () => {
-  assert.doesNotMatch(explorer, /data\.scars|Scar|scar/);
-  assert.doesNotMatch(globalStyles, /key-scar/);
-});
-
 test("keeps a compact responsive fallback for narrow or short viewports", () => {
   assert.match(globalStyles, /@media \(max-width: 719px\), \(max-height: 620px\)/);
   assert.match(globalStyles, /\.graph-stage \{ width: min\(82vw, 58dvh\)/);

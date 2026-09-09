@@ -57,7 +57,6 @@ import {
   chainDelays,
   buildRamp,
   easeInOutCubic,
-  easeOutCubic,
   indexSchedule,
   monthAtIndex,
   PLATE_RAMP,
@@ -99,6 +98,11 @@ type DetailsDialog = "events" | "data" | "method" | "key" | null;
 type TimelineEvent = { kind: "milestone"; record: Milestone };
 let marketDataRequest: Promise<MarketData> | null = null;
 
+// The market document is a static file written at build time
+// (build/fetch-market-data.mjs) and preloaded from the layout, so the request
+// is already in flight by the time this module runs.
+const MARKET_DATA_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/market-data.json`;
+
 /**
  * Where a readout line falls in the chain. The step is the score's, not the
  * stylesheet's: every beat on the page reads its timing from the one table,
@@ -109,7 +113,7 @@ const readoutStep = (line: number) => ({ animationDelay: `${line * READOUT_STEP_
 
 function loadMarketData() {
   if (!marketDataRequest) {
-    marketDataRequest = fetch("/api/market-data", { headers: { accept: "application/json" } })
+    marketDataRequest = fetch(MARKET_DATA_URL, { headers: { accept: "application/json" } })
       .then(async (response) => {
         const body = await response.json();
         if (!response.ok) throw new Error(body.error ?? "Unable to load the market specimen.");
@@ -399,7 +403,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
   const eventsForMarket = useCallback((next: Selection) => {
     const prefix = `${next.year}-${String(next.month + 1).padStart(2, "0")}-`;
     return timelineEvents.filter((item) => item.record.date.startsWith(prefix));
-  }, [data.years, timelineEvents]);
+  }, [timelineEvents]);
   const selectedMonthEvents = eventsForMarket(selection);
   // No month on the plate carries more than one knot, so reaching the month is
   // reaching its knot: the note reads it straight away rather than offering a

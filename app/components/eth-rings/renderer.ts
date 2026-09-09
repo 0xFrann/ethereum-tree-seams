@@ -12,6 +12,14 @@ import { MONTHS, type EventSelection, type MarketData, type Selection } from "./
 
 const SAMPLE_COUNT = 360;
 const TAU = Math.PI * 2;
+
+// The sheet's type is self-hosted by next/font, which registers Courier Prime
+// under a generated family name and publishes it as --font-courier. The canvas
+// has no stylesheet of its own, so it reads the variable to set the same face.
+function labelFont(sizePx: number) {
+  const family = typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue("--font-courier").trim();
+  return `400 ${sizePx}px ${family || '"Courier Prime"'}, monospace`;
+}
 const VOLUME_SAMPLES_PER_MONTH = 4;
 const PRE_MARKET_GHOST_COUNT = 14;
 const INTERSTITIAL_GHOST_FRACTIONS = [0.17, 0.34, 0.52, 0.7, 0.84] as const;
@@ -492,8 +500,8 @@ export function buildGeometry(data: MarketData, size: number): Geometry {
   });
   const events: EventGeometry = {
     knots,
-    fineHitRegions: buildEventHitRegions(knots, [], "fine"),
-    coarseHitRegions: buildEventHitRegions(knots, [], "coarse"),
+    fineHitRegions: buildEventHitRegions(knots, "fine"),
+    coarseHitRegions: buildEventHitRegions(knots, "coarse"),
   };
 
   // A calendar segment is interactive only when it can reveal an observed
@@ -978,7 +986,7 @@ function drawIndexLayer(
   const labelClearance = Math.max(5, size * 0.012);
   context.save();
   context.fillStyle = colors.muted;
-  context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
+  context.font = labelFont(labelFontSize);
   context.textAlign = "center";
   context.textBaseline = "middle";
   MONTHS.forEach((month, index) => {
@@ -1045,12 +1053,6 @@ function clamp01(value: number) {
   return Math.max(0, Math.min(1, value));
 }
 
-/**
- * Where the outermost ring stops growing: the live edge of the specimen. This
- * ring is unfinished and each new day can change its shape, and nothing on the
- * plate showed that until now. Returned in canvas units so a marker can be
- * placed over the plate in CSS.
- */
 /**
  * The radius the front must reach for every mark to be finished: the last
  * contour visible, the last ring at full weight, the last knot fully grown.
@@ -1138,6 +1140,12 @@ export function radiusAtStop(stops: readonly number[], position: number) {
   return from + (to - from) * (clamped - index);
 }
 
+/**
+ * Where the outermost ring stops growing: the live edge of the specimen. This
+ * ring is unfinished and each new day can change its shape, and nothing on the
+ * plate showed that until now. Returned in canvas units so a marker can be
+ * placed over the plate in CSS.
+ */
 export function growthFrontier(geometry: Geometry) {
   const ring = geometry.rings.at(-1);
   if (!ring) return null;
@@ -1250,7 +1258,7 @@ export function drawSelection(
   context.save();
   context.fillStyle = color;
   context.globalAlpha = arrival;
-  context.font = `400 ${labelFontSize}px "Courier Prime", monospace`;
+  context.font = labelFont(labelFontSize);
   context.textAlign = "center";
   context.textBaseline = "middle";
   const halfWidth = context.measureText(label).width / 2;
@@ -1295,16 +1303,6 @@ export function hitTestEvent(
     pointer === "coarse" ? geometry.events.coarseHitRegions : geometry.events.fineHitRegions,
     { x, y },
   );
-}
-
-export function hitTestInteractive(
-  geometry: Geometry,
-  x: number,
-  y: number,
-  pointer: "fine" | "coarse" = "fine",
-): Readonly<{ event: EventSelection; market: Selection | null }> {
-  void pointer;
-  return { event: null, market: hitTest(geometry, x, y) };
 }
 
 export function hitTest(geometry: Geometry, x: number, y: number): Selection | null {

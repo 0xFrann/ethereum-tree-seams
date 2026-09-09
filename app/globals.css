@@ -15,8 +15,8 @@
   --rule-firm: #b6b1a6;
   --accent: #1e1b16;
   /* One typeface throughout: hierarchy comes from size, weight and tracking, not from a second face. */
-  --font-display: "Courier Prime", "Courier New", monospace;
-  --font-interface: "Courier Prime", "Courier New", monospace;
+  --font-display: var(--font-courier, "Courier Prime"), "Courier New", monospace;
+  --font-interface: var(--font-courier, "Courier Prime"), "Courier New", monospace;
   --text-label: 12px;
   --text-body: 15px;
   /* One spacing scale, on a 4px step (docs/design/specimen-system.md). Every

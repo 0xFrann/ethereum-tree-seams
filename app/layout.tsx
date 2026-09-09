@@ -1,5 +1,15 @@
 import type { Metadata } from "next";
+import { Courier_Prime } from "next/font/google";
 import "./globals.css";
+
+// Self-hosted at build time, so the sheet's type never waits on a third party.
+const courierPrime = Courier_Prime({
+  weight: ["400", "700"],
+  style: ["normal", "italic"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-courier",
+});
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 const siteUrl = process.env.SITE_URL ?? "https://0xfrann.github.io/ethereum-tree-seams";
@@ -31,12 +41,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={courierPrime.variable}>
       <head>
         <link rel="preload" href={`${basePath}/market-data.json`} as="fetch" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
       </head>
       <body>{children}</body>
     </html>

@@ -42,15 +42,27 @@
   --edge-right: max(var(--sheet-margin), env(safe-area-inset-right));
   --edge-bottom: max(var(--sheet-margin), env(safe-area-inset-bottom));
   --edge-left: max(var(--sheet-margin), env(safe-area-inset-left));
-  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  /* Paper tooth: one deterministic noise tile, greyed, stretched to full
+     contrast, lifted so a little more than half of it is light, and warmed a
+     bit by holding back the blue. Laid over the page with hard-light below,
+     its dark half prints as fibre on the paper and its light half lifts the
+     ink where a raised fibre took less of it, so the type and the rings sit
+     in the sheet instead of on it. The 200px tile at a lower base frequency
+     keeps the grain around two device pixels: paper at 200% zoom, not JPEG. */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='2' seed='7' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3CfeComponentTransfer%3E%3CfeFuncR type='linear' slope='3' intercept='-.82'/%3E%3CfeFuncG type='linear' slope='3' intercept='-.86'/%3E%3CfeFuncB type='linear' slope='3' intercept='-.96'/%3E%3CfeFuncA type='table' tableValues='1 1'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 * { box-sizing: border-box; }
 html, body { min-height: 100%; margin: 0; }
 html { background: radial-gradient(125% 105% at 50% 34%, var(--paper-lift), var(--paper) 52%, var(--paper-shade) 128%) fixed; color: var(--ink); }
 body { overflow: hidden; background: transparent; font-family: var(--font-interface); -webkit-font-smoothing: antialiased; }
-/* Paper tooth over the whole plate, including the canvas and any dialog. */
-body::after { content: ""; position: fixed; z-index: 999; inset: 0; opacity: .05; background-image: var(--grain); mix-blend-mode: multiply; pointer-events: none; }
+/* Paper tooth over the whole plate, including the canvas and any dialog. The
+   opacity is the one dial: at .12 the faint labels keep 4.5:1 against the
+   paper with the ink lift averaged over the tile. */
+body::after { content: ""; position: fixed; z-index: 999; inset: 0; opacity: .12; background-image: var(--grain); mix-blend-mode: hard-light; pointer-events: none; }
+/* Readers who asked for more contrast, or for the system's own colours, get
+   flat paper: the tooth is decoration and never a carrier of meaning. */
+@media (prefers-contrast: more), (forced-colors: active) { body::after { display: none; } }
 a { color: inherit; text-underline-offset: .28em; text-decoration-color: var(--rule); transition: text-decoration-color .18s ease, color .18s ease; }
 a:hover { color: var(--accent); text-decoration-color: currentColor; }
 button { font: inherit; color: inherit; }

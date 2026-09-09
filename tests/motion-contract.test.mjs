@@ -404,11 +404,12 @@ test("keeps the blocks that change with the data from resizing the page", () => 
   assert.match(explorer, /const provenance: \[string, string \| null\]\[\]/);
   assert.doesNotMatch(explorer, /\{data \? <dl className="stage-provenance"/);
   assert.match(styles, /\.stage-provenance dd \{[^}]*min-height: 1\.2em/);
-  // The note swings between one line and a full milestone summary, so its
+  // The note swings between one line and a whole milestone reading, so its
   // height is reserved at the measured worst case instead of following content.
-  assert.match(styles, /\.selected-mark \{[^}]*min-height: 178px/);
-  // Scars are hidden for now, so the note reserves only what milestones need.
-  assert.match(styles, /\.selected-mark h2 \+ p \{[^}]*-webkit-line-clamp: 4/);
+  assert.match(styles, /\.selected-mark \{[^}]*min-height: 116px/);
+  // Every summary is written to set in two lines, and the note holds those two
+  // lines whether or not a knot is under the reading.
+  assert.match(styles, /\.selected-mark h2 \+ p \{[^}]*height: 3em;[^}]*-webkit-line-clamp: 2/);
   // A month with no reading must not collapse the observations block — and the
   // dash stands in a counter's slot, so the line keeps a counter's height too.
   assert.match(explorer, /averagePrice === null \? <ReadoutBlank text="—" \/>/);

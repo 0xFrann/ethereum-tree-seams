@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { MILESTONES, SCARS } from "../lib/event-data.mjs";
 import {
   MARKET_CACHE_KEY,
   readMarketCacheResponse,
@@ -247,7 +248,10 @@ test("HEAD and method handling never mutate cache", async () => {
   const head = await readMarketCacheResponse(bucket, { method: "HEAD", now: () => NOW });
   assert.equal(head.status, 200);
   assert.equal(await head.text(), "");
-  assert.equal(head.headers.get("ETag"), '"memory-etag"');
+  // The body is assembled from the stored market rows and the deployed
+  // chronology, so the validator names both: the stored one, and a fingerprint
+  // that changes when a milestone's wording does.
+  assert.match(head.headers.get("ETag"), /^"memory-etag~[a-z0-9]+"$/);
 
   const post = await readMarketCacheResponse(bucket, { method: "POST" });
   assert.equal(post.status, 405);
@@ -265,4 +269,26 @@ test("worker routing and deployment config keep visitors away from the provider"
   assert.match(routeSource, /status:\s*503/);
   assert.equal(hostingConfig.r2, "MARKET_CACHE");
   assert.match(viteSource, /triggers:\s*\{ crons: \["0 \* \* \* \*"\] \}/);
+});
+
+test("serves the deployed chronology rather than the copy frozen into the cache", async () => {
+  const bucket = new MemoryBucket();
+  await refreshMarketCache({ bucket, fetchImpl: successfulFetch({ count: 0 }), now: () => NOW });
+
+  // A cache written before a milestone was reworded, which is every cache
+  // between a deploy and the next hourly refresh.
+  const stale = JSON.parse(bucket.value);
+  stale.milestones = stale.milestones.map((record) => ({ ...record, summary: "Stale wording." }));
+  bucket.value = JSON.stringify(stale);
+
+  const response = await readMarketCacheResponse(bucket, { now: () => NOW });
+  const served = await response.json();
+  assert.deepEqual(served.milestones, MILESTONES);
+  assert.deepEqual(served.scars, SCARS);
+  assert.ok(!served.milestones.some(({ summary }) => summary === "Stale wording."));
+  // The market rows are the one thing the cache is the record of, and they
+  // come back untouched.
+  assert.deepEqual(served.years, stale.years);
+  assert.equal(served.source.cutoff, stale.source.cutoff);
+  assert.equal(bucket.putCalls, 1);
 });

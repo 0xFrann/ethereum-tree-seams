@@ -37,6 +37,12 @@ test("keeps semantic event selection while canvas marks inherit their month inte
   assert.match(explorer, /if \(next\) selectMarket\(next, true\)/);
   assert.doesNotMatch(explorer, /hitTestEvent\(geometry/);
   assert.match(explorer, /<EventNote item=\{selectedEvent\}/);
+  // No month carries more than one knot, so the note has no list to offer: it
+  // reads the month's knot straight away rather than putting a card in the way
+  // that has to be opened first.
+  assert.match(explorer, /\?\? selectedMonthEvents\[0\] \?\? null/);
+  assert.doesNotMatch(explorer, /month-event-list/);
+  assert.doesNotMatch(globalStyles, /month-event-list/);
 });
 
 test("reads the plate from the document's arrow keys rather than from a tab stop", () => {
@@ -70,7 +76,7 @@ test("teaches the arrow keys in the plate's own margin", () => {
   // words are in; at 12px in Courier an arrow is barely a mark.
   assert.match(explorer, /<span className="rings-hint-keys">← →<\/span>Months<span className="rings-hint-keys">↑ ↓<\/span>Years/);
   assert.match(globalStyles, /\.rings-hint-keys \{[^}]*font-size: 17px;/);
-  assert.match(globalStyles, /\.rings-hint-keys \+ \.rings-hint-keys \{ margin-left: 2\.2rem; \}/);
+  assert.match(globalStyles, /\.rings-hint-keys \+ \.rings-hint-keys \{ margin-left: var\(--space-7\); \}/);
   // A caption on the plate: it travels with the specimen and never takes the
   // pointer off it.
   assert.match(globalStyles, /\.rings-hint \{[^}]*position: absolute;[^}]*pointer-events: none;/);

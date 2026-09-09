@@ -384,9 +384,12 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
     return timelineEvents.filter((item) => item.record.date.startsWith(prefix));
   }, [data.years, timelineEvents]);
   const selectedMonthEvents = eventsForMarket(selection);
-  const selectedEvent = eventSelection
+  // No month on the plate carries more than one knot, so reaching the month is
+  // reaching its knot: the note reads it straight away rather than offering a
+  // card to open first.
+  const selectedEvent = (eventSelection
     ? timelineEvents.find((item) => item.kind === eventSelection.kind && item.record.id === eventSelection.id) ?? null
-    : null;
+    : null) ?? selectedMonthEvents[0] ?? null;
 
   const marketForEvent = useCallback((nextEvent: EventSelection) => {
     if (!nextEvent) return null;
@@ -882,7 +885,7 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
       </div>
       <aside id="rings-readout" className="selected-mark" aria-label="Selected ring segment">
         <WipeIn wipeKey={String(commitSeq)}>
-          {selectedEvent ? <EventNote item={selectedEvent} /> : selectedMonthEvents.length ? <><p className="edge-label">Selected ring segment</p><div className="month-event-list">{selectedMonthEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => selectEvent({ kind: item.kind, id: item.record.id }, true)}><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></> : <><p className="edge-label">Selected ring segment</p><p><NoteLine text="No recorded events this month." annotate={cues.note} firstPass={!noteSettled} onTyped={() => setNoteSettled(true)} /></p></>}
+          {selectedEvent ? <EventNote item={selectedEvent} strike={announceSelection} /> : <><p className="edge-label">Selected ring segment</p><p><NoteLine text="No recorded events this month." annotate={cues.note} firstPass={!noteSettled} onTyped={() => setNoteSettled(true)} /></p></>}
         </WipeIn>
       </aside>
       <nav className="stage-more" aria-label="More about this archive"><button type="button" onClick={() => setDialog("key")}>How to read</button><button type="button" onClick={() => setDialog("events")}>All marks</button><button type="button" onClick={() => setDialog("data")}>Data & source</button><button type="button" onClick={() => setDialog("method")}>Method</button></nav>
@@ -901,13 +904,19 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
 }
 
 /**
- * A knot's note. Selecting a knot is always a deliberate act — hovering the
- * plate never sets one — so its name is struck fresh each time. The summary
- * only wipes: at typing speed a two-line paragraph would keep the reader
- * waiting for the very thing they just asked to read.
+ * A knot's note: the date, the name, and two lines that say what happened.
+ * Every summary is written to those two lines, so the note is the same shape
+ * whichever knot it reads.
+ *
+ * The name is struck fresh on a committed reading — a click, a key, a pick
+ * from the dialog. A pointer scrubbing the plate crosses a knot's month in
+ * passing and only sets the name, because re-striking a word a dozen times a
+ * second is noise. The summary never types: at typing speed a two-line
+ * paragraph would keep the reader waiting for the very thing they asked to
+ * read.
  */
-function EventNote({ item }: { item: TimelineEvent }) {
-  return <><p className="edge-label">{formatDate(item.record.date)}</p><h2><TypeOn key={item.record.id} text={item.record.name} start /></h2><p>{item.record.summary}</p><a className="event-source" href={item.record.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Read the primary source for ${item.record.name}`}>↗</a></>;
+function EventNote({ item, strike }: { item: TimelineEvent; strike: boolean }) {
+  return <><p className="edge-label">{formatDate(item.record.date)}</p><h2>{strike ? <TypeOn key={item.record.id} text={item.record.name} start /> : item.record.name}</h2><p>{item.record.summary}</p><a className="event-source" href={item.record.sourceUrl} target="_blank" rel="noreferrer" aria-label={`Read the primary source for ${item.record.name}`}>↗</a></>;
 }
 
 /**

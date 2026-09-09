@@ -172,3 +172,33 @@ test("healing states preserve the accepted recovery distinctions", () => {
   assert.equal(byId.get("bybit-2025"), "open");
   assert.equal(byId.get("kelpdao-2026"), "open");
 });
+
+/**
+ * The note in the sheet's bottom-left corner is 19rem at its narrowest and sets
+ * its summary in Courier at 14px, whose advance is 0.6em — 36 characters to the
+ * line. Two of those lines is the whole reading, and the note reserves exactly
+ * two whether or not a knot is under it, so a summary that runs to a third is
+ * one the reader never sees the end of. The text is written to the measure;
+ * this is the measure.
+ */
+function noteLines(text, columns = 36) {
+  const lines = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    if (!line) line = word;
+    else if (`${line} ${word}`.length <= columns) line = `${line} ${word}`;
+    else { lines.push(line); line = word; }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+test("writes every milestone summary to the two lines the note holds", () => {
+  for (const record of [ORIGIN, ...MILESTONES]) {
+    const lines = noteLines(record.summary);
+    assert.ok(
+      lines.length <= 2,
+      `${record.id} sets in ${lines.length} lines: ${lines.join(" / ")}`,
+    );
+  }
+});

@@ -70,13 +70,25 @@ button { font: inherit; color: inherit; }
     linear-gradient(var(--rule), var(--rule)) right bottom / 1px 14px no-repeat;
   pointer-events: none; }
 
-.stage-title, .stage-price, .selected-mark, .stage-more, .stage-credit { position: absolute; z-index: 2; }
+.stage-title, .stage-price, .selected-mark, .stage-more { position: absolute; z-index: 2; }
 .stage-title { top: var(--edge-top); left: var(--edge-left); max-width: 22rem; }
-.stage-title p, .stage-title span, .edge-label, .stage-provenance dt, .stage-price span, .price-observations dt, .stage-more button, .stage-credit { font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .06em; }
+.stage-kicker, .edge-label, .stage-provenance dt, .stage-price span, .price-observations dt, .stage-more button, .stage-credit { font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .06em; }
 /* Specimen-sheet convention: the topmost label carries the widest track on the page. */
-.stage-title p { margin: 0; color: var(--ink-faint); font-size: 14px; letter-spacing: .52em; text-transform: uppercase; }
+.stage-kicker { margin: 0; color: var(--ink-faint); font-size: 14px; letter-spacing: .52em; text-transform: uppercase; }
 .stage-title h1 { margin: 0; color: var(--ink-title); font: 400 clamp(1.9rem, 3.2vw, 3.4rem)/.95 var(--font-display); letter-spacing: .01em; }
-.stage-title span { display: block; }
+/* The byline is set under the specimen number, in the label's own faint ink:
+   it is part of the sheet's identity, not a footer, so it is written where the
+   sheet says what it is rather than in the paper's bottom margin. It sets on
+   one line — the two links and the slash between them are one statement — and
+   the title block's width holds it at every size. The links carry no arrow:
+   an underline is a link's mark, and two arrows in a line of eight words read
+   as decoration rather than as a way out of the page. */
+.stage-credit { color: var(--ink-faint); white-space: nowrap; }
+/* Typed spans arrive in pairs while a line is still being struck: the visible
+   one and the copy a screen reader gets. The space belongs between the parts of
+   the byline, so it is set on what follows the first of them. */
+.stage-credit > * + * { margin-left: var(--space-2); }
+.stage-credit a { text-decoration: underline; }
 .stage-provenance div { text-align: left; }
 .stage-provenance dt { margin: 0; color: var(--ink-faint); font-weight: 400; letter-spacing: .13em; text-transform: uppercase; }
 .stage-provenance dd { margin: 0; min-height: 1.2em; font: 400 15px/1.2 var(--font-interface); letter-spacing: .01em; }
@@ -117,8 +129,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 /* How to work the plate, set in the plate's own bottom margin. The drawing
    reaches 0.45 of the square and the month labels a hair past that, so the
    caption sits on the paper left under JUL: it travels with the specimen rather
-   than with the page, needs no arrangement of its own at any size, and stays
-   clear of the bottom-centre column the credit already stands in. */
+   than with the page, and needs no arrangement of its own at any size — the
+   sheet's bottom margin carries writing only in its two corners. */
 .rings-hint { position: absolute; bottom: 0; left: 50%; margin: 0; color: var(--ink-faint); font: 400 var(--text-label)/1.5 var(--font-interface); letter-spacing: .13em; text-transform: uppercase; transform: translateX(-50%); white-space: nowrap; pointer-events: none; }
 /* The glyphs carry the instruction and the words only name it, so the arrows
    are set a size above the label type they sit in. At 12px in Courier they are
@@ -127,11 +139,11 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .rings-hint-keys { margin-right: var(--space-2); font-size: 17px; letter-spacing: .04em; vertical-align: -.08em; }
 .rings-hint-keys + .rings-hint-keys { margin-left: var(--space-7); }
 /* A touch screen has no arrow keys, and under about 880px of viewport the
-   credit walks up into the plate's margin and leaves no paper for a caption.
+   plate's own margin closes on the sheet's, leaving no paper for a caption.
    The keys still work; only the teaching is withdrawn. */
 @media (hover: none), (pointer: coarse), (max-height: 880px) { .rings-hint { display: none; } }
-/* The note sits on the sheet's bottom margin, in line with the credit and the
-   outline, and grows upward from there. Its height is still reserved at the
+/* The note sits on the sheet's bottom margin, in line with the outline
+   opposite it, and grows upward from there. Its height is still reserved at the
    worst case, so the box itself never moves; only the writing inside it does. */
 .selected-mark { bottom: var(--edge-bottom); left: var(--edge-left); display: grid; width: clamp(19rem, 27vw, 21rem); min-height: 116px; align-content: end; }
 /* The source link is set against the note's writing, not the reserved box. */
@@ -147,13 +159,15 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    smaller than the type it sat beside, and level with nothing. It is set now at
    the size of the reading it belongs to and in the same ink as the summary, so
    it carries a control's weight without a shape drawn round it — the arrow is
-   already this sheet's sign for a link, the credit's two carry it. The box
+   this sheet's sign for a link that leaves the page, and the dialogs' source
+   links carry it too. The box
    around it stays a target a thumb can hit, and the title's right margin holds
    the box, less the gap between them. */
 .event-source { position: absolute; top: 0; right: 0; display: grid; width: calc(var(--space-7) + var(--space-2)); height: calc(var(--space-7) + var(--space-2)); place-items: center; color: var(--ink-soft); font-size: 1.5rem; line-height: 1; text-decoration: none; transition: color .18s ease; }
 .event-source:hover { color: var(--accent); }
 /* The last button's own padding is given back below, so its text sets on the
-   same line as the credit's rather than a padding's height above it. */
+   sheet's bottom margin, level with the note's last line, rather than a
+   padding's height above it. */
 .stage-more { right: var(--edge-right); bottom: var(--edge-bottom); display: grid; margin-bottom: calc(-1 * var(--space-1)); text-align: right; }
 /* The focus ring stands 4px off the button's box, so a button with no
    horizontal padding wore its ring tight against the ends of its text. The
@@ -161,9 +175,6 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    that room back so the text still sets flush with the corner. */
 .stage-more button { padding: var(--space-1) var(--space-2); margin-right: calc(-1 * var(--space-2)); border: 0; background: transparent; color: var(--ink-soft); cursor: pointer; text-align: right; text-decoration: none; transition: color .18s ease; }
 .stage-more button:hover { color: var(--accent); text-decoration: underline; text-underline-offset: .28em; }
-.stage-credit { bottom: var(--edge-bottom); left: 50%; color: var(--ink-faint); transform: translateX(-50%); white-space: nowrap; }
-.stage-credit > * { margin-left: var(--space-2); }
-.stage-credit a { text-decoration: underline; }
 
 /* ---- The corners' shared rhythm ----------------------------------------
    The title, the readout, the note and the outline are the same object four
@@ -175,7 +186,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .stage-provenance div, .price-observations div { display: grid; gap: var(--gap-pair); }
 /* Everything else is an item apart: the price range stands the same distance
    from the month above it as from the readings below. */
-.stage-title span, .price-range, .selected-mark h2 + p { margin-top: var(--gap-item); }
+.stage-credit, .price-range, .selected-mark h2 + p { margin-top: var(--gap-item); }
 .stage-provenance, .price-observations { display: grid; gap: var(--gap-item); margin: var(--gap-item) 0 0; }
 /* The outline's buttons carry a quarter step of padding for their focus rings,
    given back here so their lines set an item apart. */
@@ -253,7 +264,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 /* Each block waits for its own beat of the score. The delays that used to live
    here are gone: timing belongs in the score, not scattered across CSS, or the
    page arrives as several animations that merely happen to overlap. */
-.stage-price, .selected-mark, .stage-more, .stage-credit, .growth-frontier, .rings-hint { opacity: 0; }
+.stage-price, .selected-mark, .stage-more, .growth-frontier, .rings-hint { opacity: 0; }
 /* The readout arrives line by line rather than as one block, so that the two
    upper corners of the sheet are both being made rather than one of them being
    written while the other is simply already there. The lines carry the
@@ -263,7 +274,6 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .is-readout .readout-line { animation: wipe-in .19s ease-out both; }
 .is-note .selected-mark { opacity: 1; transition: opacity .4s ease; }
 .is-note .stage-more { opacity: 1; transition: opacity .4s ease; }
-.is-note .stage-credit { opacity: 1; transition: opacity .4s ease; }
 /* The caption is an annotation, not a prompt: it arrives at the weight it
    keeps, faint from the first breath, and stays as the legend for the keys. */
 .is-note .rings-hint { opacity: .45; transition: opacity .4s ease; }
@@ -272,11 +282,10 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 @keyframes wipe-in { from { opacity: 0; transform: translateY(.28rem); } to { opacity: 1; transform: none; } }
 .wipe-in { animation: wipe-in .19s ease-out both; }
 
-/* `.stage-title span` and `.stage-price span` predate this markup and set a
-   small label face, a block display and a top margin on any span inside those
-   blocks. The spans the typing emits are structural, not styled elements: they
-   have to carry the type of whatever they sit inside, or the kicker loses its
-   wide tracking and every typed value renders at label size. */
+/* `.stage-price span` sets a small label face on any span inside the readout.
+   The spans the typing emits are structural, not styled elements: they have to
+   carry the type of whatever they sit inside, or the kicker loses its wide
+   tracking and every typed value renders at label size. */
 .typed, .stage-title .typed, .stage-price .typed, .selected-mark .typed { display: inline; margin: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; }
 
 /* A mechanical counter. `tabular-nums` on the readout keeps every slot the
@@ -347,16 +356,13 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 .is-grown .growth-frontier { animation: frontier-breath 4.2s ease-in-out infinite; }
 @keyframes frontier-breath { 0%, 100% { opacity: .22; transform: scale(.75); } 50% { opacity: .6; transform: scale(1.25); } }
 
-/* Under 1000px the credit moves under the outline, which lifts by the credit's
-   line (label type at 1.5 is 18px) and the outline's own gap. */
-@media (max-width: 1000px) { .stage-credit { right: var(--edge-right); bottom: var(--edge-bottom); left: auto; transform: none; } .stage-more { bottom: calc(var(--edge-bottom) + 1.125rem + var(--space-2)); } }
 @media (min-width: 720px) and (max-height: 799px) { .graph-stage { width: min(760px, calc(100dvh - 2 * var(--frame-inset))); } }
 /* A compact sheet: both margins step down one stop, and every block on the
    sheet follows them through the two edge tokens. The section gaps step down
    one stop with them; the gaps inside a block are already at the smallest. */
 @media (max-width: 719px), (max-height: 620px) { :root { --frame-inset: var(--space-3); --sheet-margin: var(--space-7); --gap-item: var(--space-3); } .explorer-stage { min-height: 30rem; }
-.stage-title { max-width: 20rem; } .stage-title p { font-size: 12px; } .stage-title span { font-size: 11px; } .stage-title h1 { font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 15px; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { width: min(13rem, 48vw); min-height: 140px; padding-top: var(--space-2); } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { margin-right: calc(var(--space-7) + var(--space-2)); font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { width: var(--space-7); height: var(--space-7); font-size: 1rem; } .stage-more { bottom: calc(var(--edge-bottom) + 1.03rem + var(--space-1)); gap: var(--space-1); } .stage-more button, .stage-credit { font-size: 11px; } }
-@media (max-width: 390px), (max-height: 500px) { .stage-title span, .price-observations, .selected-mark .edge-label { display: none; } .selected-mark { width: 11rem; min-height: 126px; padding-top: 0; border-top: 0; } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
+.stage-title { max-width: 20rem; } .stage-kicker { font-size: 12px; } .stage-title h1 { font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 15px; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { width: min(13rem, 48vw); min-height: 140px; padding-top: var(--space-2); } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { margin-right: calc(var(--space-7) + var(--space-2)); font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { width: var(--space-7); height: var(--space-7); font-size: 1rem; } .stage-more { gap: var(--space-1); } .stage-more button, .stage-credit { font-size: 11px; } }
+@media (max-width: 390px), (max-height: 500px) { .price-observations, .selected-mark .edge-label { display: none; } .selected-mark { width: 11rem; min-height: 126px; padding-top: 0; border-top: 0; } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
 /* ---- Ink, not boxes -----------------------------------------------------
    The two gaps are meant between the type's ink: from one line's baseline to
    the cap height of the next. A line box carries leading above the caps and
@@ -371,7 +377,7 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 @supports (text-box: trim-both cap alphabetic) {
   :root { --gap-pair: var(--space-3); --gap-item: var(--space-6); }
   @media (max-width: 719px), (max-height: 620px) { :root { --gap-pair: var(--space-2); --gap-item: var(--space-4); } }
-  .stage-title :is(p, h1, span), .stage-provenance :is(dt, dd), .period-date, .price-range, .price-observations :is(dt, dd), .selected-mark :is(p, h2), .stage-more button, .stage-credit, .rings-hint, .explorer-state p, .stage-dialog-head h2, .stage-dialog-body p, .dialog-event-list :is(span, strong, small), .dialog-data :is(dt, dd), .dialog-method b { text-box: trim-both cap alphabetic; }
+  .stage-title :is(h1, p), .stage-provenance :is(dt, dd), .period-date, .price-range, .price-observations :is(dt, dd), .selected-mark :is(p, h2), .stage-more button, .stage-credit, .rings-hint, .explorer-state p, .stage-dialog-head h2, .stage-dialog-body p, .dialog-event-list :is(span, strong, small), .dialog-data :is(dt, dd), .dialog-method b { text-box: trim-both cap alphabetic; }
   /* Courier Prime's cap height: what a trimmed line of it stands. */
   .stage-provenance dd { min-height: .58em; }
   /* Two trimmed lines of the summary's type: a line's pitch and a cap height,

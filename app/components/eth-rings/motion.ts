@@ -169,7 +169,8 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // tails overlap; strict back-to-back beats leave dead air between them, which
 // reads as stalling rather than rhythm.
 //
-//   header   the project introduces itself, then rattles off its provenance
+//   header   the project introduces itself, signs the sheet, then rattles
+//            off its provenance
 //   plate    the specimen, once named, is drawn
 //   readout  the label finished, the instrument is set on the specimen line
 //            by line, and the year it shows is the year the front is laying
@@ -242,7 +243,11 @@ export function phase(elapsed: number, start: number, duration: number, ease: Ea
 // every frame, so the sweep it was meant to accompany stutters. The wedge on
 // its own is sixty lines and a stroke.
 export const SCORE = {
-  header: { start: 0, duration: 2230 },
+  // The whole label: the two identity lines presented, then the byline and
+  // the provenance rattled off after them. The byline is written into the
+  // same chain, so the label takes its own line's length longer to finish
+  // than it did when the credit stood in the sheet's bottom margin.
+  header: { start: 0, duration: 2641 },
   // Where the label stops presenting and starts rattling: "Specimen" and
   // "ETH_TREE_01" struck at TITLE_SPEED_MS with their holds, which is 1232.
   // The specimen is named before it is drawn, and grows under the provenance.
@@ -250,7 +255,7 @@ export const SCORE = {
   // On the header's last beat, so the label is finished before the instrument
   // is set on it. Long enough for the instrument's four lines to be laid down
   // one after another: READOUT_STEP_MS apart, plus the last line's arrival.
-  readout: { start: 2230, duration: 640 },
+  readout: { start: 2641, duration: 640 },
   index: { start: 7932, duration: 1300 },
   // On the calendar's last step, with no gap: the circle closes and the plate
   // resolves into the reading in one movement.

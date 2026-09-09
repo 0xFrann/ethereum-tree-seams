@@ -95,7 +95,12 @@ test("keeps every beat on the one clock", () => {
   // The keyboard caption is annotation: it arrives on the note's beat with the
   // rest of the margin, carries no timing of its own, and arrives at the faint
   // weight it keeps rather than announcing itself and then standing down.
-  assert.match(styles, /\.stage-price, \.selected-mark, \.stage-more, \.stage-credit, \.growth-frontier, \.rings-hint \{ opacity: 0; \}/);
+  assert.match(styles, /\.stage-price, \.selected-mark, \.stage-more, \.growth-frontier, \.rings-hint \{ opacity: 0; \}/);
+  // The byline is part of the label now, not of the sheet's bottom margin: it
+  // is struck in the header's own chain rather than faded in on the note's
+  // beat, so it carries no opacity of its own at all.
+  assert.doesNotMatch(styles, /\.is-note \.stage-credit/);
+  assert.doesNotMatch(styles, /\.stage-credit \{[^}]*opacity/);
   assert.match(styles, /\.is-note \.rings-hint \{ opacity: \.45; transition: opacity \.4s ease; \}/);
   assert.doesNotMatch(styles, /\.rings-hint \{[^}]*transition-delay/);
   // The live edge belongs to the finished specimen, not to an empty sheet: it
@@ -277,6 +282,13 @@ test("strikes the header as a chain, labels included", () => {
   // Chained off the real text, so the rhythm survives a change of wording.
   assert.match(motion, /export function chainDelays/);
   assert.match(explorer, /const at = chainDelays\(links\)/);
+  // The byline is written in the same chain, under the specimen number and
+  // before the provenance: a sheet is signed after it is named and before it
+  // is dated. Its slash is struck in its turn too, or it stands alone on the
+  // line waiting for the words either side of it.
+  assert.match(explorer, /const byline = \["By", "Frann Dalmasso", "\/", "Code"\]/);
+  assert.match(explorer, /\.\.\.byline\.map\(\(text\) => detail\(text\)\),\n\s*\.\.\.provenance\.flatMap/);
+  assert.match(explorer, /const provenanceAt = bylineAt \+ byline\.length/);
   // The identity lines present; the provenance rows are a detail and rattle by.
   const titleSpeed = Number(motion.match(/TITLE_SPEED_MS = (\d+)/)[1]);
   const detailSpeed = Number(motion.match(/DETAIL_SPEED_MS = (\d+)/)[1]);

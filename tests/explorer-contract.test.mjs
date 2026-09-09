@@ -5,7 +5,7 @@ import test from "node:test";
 const explorer = await readFile(new URL("../app/components/EthRings.tsx", import.meta.url), "utf8");
 const globalStyles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
 
-test("builds a no-scroll viewport stage with centered graph and six edge regions", () => {
+test("builds a no-scroll viewport stage with centered graph and five edge regions", () => {
   assert.match(globalStyles, /\.explorer-stage \{[^}]*height: 100dvh;[^}]*overflow: hidden;/);
   assert.match(globalStyles, /\.graph-stage \{[^}]*top: 50%;[^}]*left: 50%;/);
   assert.match(globalStyles, /width: clamp\(760px, 68vmin, 920px\)/);
@@ -14,7 +14,10 @@ test("builds a no-scroll viewport stage with centered graph and six edge regions
   assert.match(explorer, /className="stage-price"/);
   assert.match(explorer, /className="selected-mark"/);
   assert.match(explorer, /className="stage-more"/);
+  // The byline is not a region of its own: it is written into the title block,
+  // under the specimen number, rather than standing in the bottom margin.
   assert.match(explorer, /className="stage-credit"/);
+  assert.doesNotMatch(globalStyles, /\.stage-credit \{[^}]*(position: absolute|bottom:)/);
 });
 
 test("uses price observations rather than returns", () => {

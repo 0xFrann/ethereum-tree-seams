@@ -138,22 +138,38 @@ function StageTitle({ data, annotate = true }: { data?: MarketData; annotate?: b
   ];
   const title = (text: string, hold = TITLE_HOLD_MS): ChainLink => ({ text, speed: TITLE_SPEED_MS, hold });
   const detail = (text: string): ChainLink => ({ text, speed: DETAIL_SPEED_MS, hold: DETAIL_HOLD_MS });
+  // The byline is written where it now stands, under the specimen number and
+  // above the provenance: a sheet is signed after it is named and before it is
+  // dated. It rattles rather than presents — whose sheet it is belongs with the
+  // detail, not with the two lines the project introduces itself in — and the
+  // slash between the two links is struck in its turn like everything else on
+  // the line, or it stands there alone waiting for the words either side of it.
+  const byline = ["By", "Frann Dalmasso", "/", "Code"];
   const links: ChainLink[] = [
     title("Specimen"),
     title("ETH_TREE_01", TITLE_HOLD_MS * 1.4),
+    ...byline.map((text) => detail(text)),
     ...provenance.flatMap(([label, value]) => [detail(label), detail(value ?? "")]),
   ];
   const at = chainDelays(links);
+  const bylineAt = 2;
+  const provenanceAt = bylineAt + byline.length;
 
   return (
     <header className="stage-title">
-      <p><TypeOn text="Specimen" start={annotate} delay={at[0]} speed={TITLE_SPEED_MS} /></p>
+      <p className="stage-kicker"><TypeOn text="Specimen" start={annotate} delay={at[0]} speed={TITLE_SPEED_MS} /></p>
       <h1><TypeOn text="ETH_TREE_01" start={annotate} delay={at[1]} speed={TITLE_SPEED_MS} /></h1>
+      <p className="stage-credit">
+        <TypeOn text={byline[0]} start={annotate} delay={at[bylineAt]} speed={DETAIL_SPEED_MS} />
+        <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer"><TypeOn text={byline[1]} start={annotate} delay={at[bylineAt + 1]} speed={DETAIL_SPEED_MS} /></a>
+        <span aria-hidden="true"><TypeOn text={byline[2]} start={annotate} delay={at[bylineAt + 2]} speed={DETAIL_SPEED_MS} /></span>
+        <a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer"><TypeOn text={byline[3]} start={annotate} delay={at[bylineAt + 3]} speed={DETAIL_SPEED_MS} /></a>
+      </p>
       <dl className="stage-provenance" aria-label="Specimen provenance">
         {provenance.map(([label, value], index) => (
           <div key={label}>
-            <dt><TypeOn text={label} start={annotate} delay={at[2 + index * 2]} speed={DETAIL_SPEED_MS} /></dt>
-            <dd>{value === null ? null : <TypeOn text={value} start={annotate} delay={at[3 + index * 2]} speed={DETAIL_SPEED_MS} />}</dd>
+            <dt><TypeOn text={label} start={annotate} delay={at[provenanceAt + index * 2]} speed={DETAIL_SPEED_MS} /></dt>
+            <dd>{value === null ? null : <TypeOn text={value} start={annotate} delay={at[provenanceAt + 1 + index * 2]} speed={DETAIL_SPEED_MS} />}</dd>
           </div>
         ))}
       </dl>
@@ -889,7 +905,6 @@ function EthRingsExplorer({ data, entryTargetRef }: { data: MarketData; entryTar
         </WipeIn>
       </aside>
       <nav className="stage-more" aria-label="More about this archive"><button type="button" onClick={() => setDialog("key")}>How to read</button><button type="button" onClick={() => setDialog("events")}>All marks</button><button type="button" onClick={() => setDialog("data")}>Data & source</button><button type="button" onClick={() => setDialog("method")}>Method</button></nav>
-      <footer className="stage-credit">By <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer">Fran Dalmasso ↗</a><span aria-hidden="true">·</span><a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer">Code ↗</a></footer>
       <p className="sr-only" role="status" aria-live="polite" aria-atomic="true">{announceSelection ? `${periodLabel} selected. ${priceSummary}${selectedEvent ? ` Milestone: ${selectedEvent.record.name}.` : ""}` : ""}</p>
       {dialog === "events" ? <StageDialog title="Knots" onClose={() => setDialog(null)}><div className="dialog-event-list">{timelineEvents.map((item) => <button key={`${item.kind}:${item.record.id}`} type="button" onClick={() => { selectEvent({ kind: item.kind, id: item.record.id }, true); setDialog(null); }}><span>{formatDate(item.record.date)}</span><strong>{item.record.name}</strong><small>{item.record.summary}</small></button>)}</div></StageDialog> : null}
       {dialog === "key" ? <StageDialog title="How to read the rings" onClose={() => setDialog(null)}><ul className="dialog-key">

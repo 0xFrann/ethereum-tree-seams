@@ -1,6 +1,6 @@
 # Knot geometry
 
-A knot is a protocol milestone embedded in the grain of its year. This note describes how a milestone's date becomes a point on the plate, how the knot is shaped around that point, what happens when two knots in one year would touch, and how a knot is hit-tested. Everything here is implemented in `app/components/eth-rings/event-geometry.ts`, which is a pure module — no React, no `window`, no CSS, no canvas context, no local-time `Date` calls — so `tests/event-geometry.test.mjs` can exercise it in Node with numeric tolerances.
+A knot is a protocol milestone embedded in the grain of its year. This note describes how a milestone's date becomes a point on the plate, how the knot is shaped around that point, what happens when two knots in one year would touch, and how a knot is hit-tested. Everything here is implemented in `app/components/eth-rings/event-geometry.ts`, a pure module with no React, no `window`, no CSS, no canvas context and no local-time `Date` calls, so `tests/event-geometry.test.mjs` exercises it in Node with numeric tolerances.
 
 Frontier genesis is the origin at the pith and is not a knot. Every milestone has equal rank, and nothing about a knot's size encodes importance.
 
@@ -80,7 +80,7 @@ for i in 0..7:
   rotate (x', y') by rotation, translate to centre
 ```
 
-The renderer runs a smooth closed loop through those eight points rather than joining them with straight segments, because a knot in wood has no corners. The key beside "Knots — protocol milestones" is drawn by the same function, so the mark in the legend is built the way the marks on the plate are.
+The renderer runs a smooth closed loop through those eight points rather than joining them with straight segments, because a knot in wood has no corners. The knot in the "How to read the rings" key is drawn by the same function, so the mark in the legend is built the way the marks on the plate are.
 
 ### Grain swelling
 
@@ -138,29 +138,10 @@ That keeps a click on a knot's actual outline from being stolen by a neighbour's
 
 Pointer dispatch runs knot hit-testing before month hit-testing, so a knot on the boundary of a month still wins; a point outside every knot region falls through to the ring and month layer unchanged. Selecting a knot synchronises the market selection to the knot's true calendar month, and a knot in the unpriced interval is selectable without manufacturing a market reading.
 
-## Semantics off the canvas
+## Off the canvas
 
-Canvas pixels are not the only representation. The canvas is not a tab stop and shows no focus ring; the arrow keys, read from the document, move the reading by month and year, and a selected knot's note — `Milestone`, name, exact date, summary, activation reference, confidence, source link — lives in reflowing HTML beside the plate. The polite live region announces a committed selection once, naming the milestone when the selected month contains one. Every mark has one visible DOM equivalent with a 44 px target.
+The plate is not a tab stop and shows no focus ring. The arrow keys, read from the document, move the reading by month and year, and a selected knot's note — date, name, summary and a link to its primary source — is set in HTML under the plate. A polite live region announces a committed selection once, naming the milestone when the selected month holds one.
 
-## Mobile and zoom
+Geometry is recomputed from the CSS size of the canvas whenever it changes; nothing is bitmap-scaled. On a coarse pointer the hit regions widen to the 22 px padding above, and the drawn knot does not change. Under reduced motion the layout is the same; the entrance renders its final state in one frame.
 
-Geometry is recomputed from the CSS canvas size; desktop paths are never bitmap-scaled. Below 420 CSS px the same exact angles apply, knot radii bottom out at their clamps, on-canvas text is omitted, and the coarse hit regions and the DOM note carry the interaction. At 200% zoom in a 1280×720 viewport the page takes the mobile composition, targets stay 44 CSS px, and the note reflows rather than the canvas cropping. Reduced motion needs no geometry change because layout is deterministic and static; the entrance renders its final state in one frame.
-
-## Exported API
-
-```ts
-export function parseIsoDateUtc(date: string): {
-  year: number; dayIndex: number; daysInYear: 365 | 366; fraction: number;
-};
-export function dateToAngle(date: string): number;
-export function interpolateRingAtFraction(radii: readonly number[], fraction: number): number;
-export function knotOutline(seed: string, center: Point, majorRadius: number, minorRadius: number, rotation: number): Point[];
-export function buildEventAnchors(events, yearBands, { center, size, gap, lastDate }): readonly EventAnchor[];
-export function resolveEventCollisions(anchors, { pointer, selectionHaloPx }): readonly EventAnchor[];
-export function buildKnotGeometry(event: Milestone, anchor: EventAnchor, localGap: number): KnotGeometry;
-export function buildEventHitRegions(knots, pointer: "fine" | "coarse"): readonly EventHitRegion[];
-export function hitTestEvents(regions, point: Point): EventSelection;
-export function nextEventId(events, currentId: string | null, direction: -1 | 1 | "first" | "last"): string | null;
-```
-
-Every function returns plain readonly numbers and points rather than `Path2D`, so the tests can inspect them without a browser; the renderer converts paths to canvas calls at draw time.
+Every function in the module returns plain readonly numbers and points rather than `Path2D`, so the tests inspect them without a browser; the renderer converts them to canvas calls at draw time.

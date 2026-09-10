@@ -4,7 +4,7 @@
 // workflow runs on a schedule, and a failed fetch fails the build, which leaves
 // the previously published site (its last known good data) untouched.
 //
-//   node build/fetch-market-data.mjs [--if-missing] [--out public/market-data.json]
+//   node scripts/fetch-market-data.mjs [--if-missing] [--out public/market-data.json]
 //
 // --if-missing skips the network when the file already exists, which keeps
 // `pnpm dev` and local builds offline after the first run.

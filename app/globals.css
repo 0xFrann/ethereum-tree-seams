@@ -19,7 +19,7 @@
   --font-interface: var(--font-courier, "Courier Prime"), "Courier New", monospace;
   --text-label: 12px;
   --text-body: 15px;
-  /* One spacing scale, on a 4px step (docs/design/specimen-system.md). Every
+  /* One spacing scale, on a 4px step (docs/design-system.md). Every
      gap, margin and padding on the sheet is one of these; nothing is set by
      eye in between them. */
   --space-1: .25rem;

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { buildMarketDocument, MARKET_SOURCE_URL } from "../build/fetch-market-data.mjs";
+import { buildMarketDocument, MARKET_SOURCE_URL } from "../scripts/fetch-market-data.mjs";
 import { MARKET_DATA_START } from "../lib/market-data.mjs";
 
 const HEADER = "unix,date,symbol,open,high,low,close,Volume ETH,Volume USD";

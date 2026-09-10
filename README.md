@@ -4,7 +4,7 @@ Ethereum's market history, read the way a dendrochronologist reads a tree. Every
 
 **Live:** https://0xfrann.github.io/ethereum-tree-seams/
 
-[![The specimen plate: ten annual rings with their milestone knots, a month index around the edge, and the readout for September 2026](docs/media/specimen.jpg)](https://0xfrann.github.io/ethereum-tree-seams/)
+[![The specimen plate: ten annual rings with their milestone knots, a month index around the edge, and the readout for September 2026](docs/specimen.jpg)](https://0xfrann.github.io/ethereum-tree-seams/)
 
 ## Reading the specimen
 
@@ -26,7 +26,7 @@ The chronology starts at genesis on 30 July 2015. The single-market price series
 | Hosting | GitHub Pages, rebuilt daily by GitHub Actions |
 | Tests | `node:test`, no framework |
 
-There is no server. `build/fetch-market-data.mjs` runs before every build, validates and aggregates the upstream file, and writes `public/market-data.json`. The page preloads that file and draws from it, so a visitor's request never reaches the data provider. The deploy workflow runs on a schedule; if the upstream fetch fails, the build fails and the previously published site stays up with its last good data.
+There is no server. `scripts/fetch-market-data.mjs` runs before every build, validates and aggregates the upstream file, and writes `public/market-data.json`. The page preloads that file and draws from it, so a visitor's request never reaches the data provider. The deploy workflow runs on a schedule; if the upstream fetch fails, the build fails and the previously published site stays up with its last good data.
 
 The renderer caps the device-pixel ratio, caches the static artwork, and redraws only the selection layer during interaction. The entrance is choreographed on one clock and honours reduced-motion preferences.
 
@@ -78,12 +78,15 @@ app/
 lib/
   market-data.mjs                CSV parsing, validation, and aggregation
   event-data.mjs                 Sourced milestone records
-build/
-  fetch-market-data.mjs          Build-time data fetch
+scripts/
+  fetch-market-data.mjs          Build-time data fetch, run before every build
 docs/
-  engineering/                   The data pipeline
-  research/                      Source investigation, milestone research, data decisions
-  design/                        The visual system and knot geometry
+  data-pipeline.md               Fetch, validate, aggregate, publish
+  data-decisions.md              What the rings are allowed to say
+  market-data-sources.md         The source in use and the alternatives
+  protocol-milestones.md         The knots, their sources, and the exclusions
+  design-system.md               The sheet: material, type, spacing, layout, motion
+  knot-geometry.md               How a milestone becomes a point on the plate
 tests/                           Unit tests, plus one suite that checks the static export
 ```
 
@@ -94,7 +97,7 @@ tests/                           Unit tests, plus one suite that checks the stat
 - Days missing from the upstream file are disclosed in the document's `source.gaps` and never interpolated.
 - Milestones are an editorial selection of protocol events with a source, a checked date, and a confidence note each. They are context, not claims about what moved the market.
 
-See [the data decisions](docs/research/data-decisions.md) and [the data pipeline](docs/engineering/data-pipeline.md) for the reasoning.
+See [the data decisions](docs/data-decisions.md) and [the data pipeline](docs/data-pipeline.md) for the reasoning.
 
 ## Author and license
 

@@ -4,7 +4,7 @@ The site is a Next.js static export. There is no server and no API: the market h
 
 ## Source
 
-`build/fetch-market-data.mjs` downloads the CryptoDataDownload copy of Bitstamp ETH/USD daily candles from `https://www.cryptodatadownload.com/cdd/Bitstamp_ETHUSD_d.csv`, with a 20-second timeout. Why that file, and what the alternatives were, is in [market-data-sources.md](../research/market-data-sources.md).
+`scripts/fetch-market-data.mjs` downloads the CryptoDataDownload copy of Bitstamp ETH/USD daily candles from `https://www.cryptodatadownload.com/cdd/Bitstamp_ETHUSD_d.csv`, with a 20-second timeout. Why that file, and what the alternatives were, is in [market-data-sources.md](./market-data-sources.md).
 
 ## Fetch, validate, aggregate
 

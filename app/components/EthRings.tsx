@@ -98,7 +98,7 @@ type TimelineEvent = { kind: "milestone"; record: Milestone };
 let marketDataRequest: Promise<MarketData> | null = null;
 
 // The market document is a static file written at build time
-// (build/fetch-market-data.mjs) and preloaded from the layout, so the request
+// (scripts/fetch-market-data.mjs) and preloaded from the layout, so the request
 // is already in flight by the time this module runs.
 const MARKET_DATA_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/market-data.json`;
 

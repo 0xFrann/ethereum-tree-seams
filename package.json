@@ -8,10 +8,10 @@
   "packageManager": "pnpm@11.24.0",
   "scripts": {
     "preinstall": "npx -y only-allow pnpm",
-    "data": "node build/fetch-market-data.mjs",
-    "predev": "node build/fetch-market-data.mjs --if-missing",
+    "data": "node scripts/fetch-market-data.mjs",
+    "predev": "node scripts/fetch-market-data.mjs --if-missing",
     "dev": "next dev",
-    "prebuild": "node build/fetch-market-data.mjs --if-missing",
+    "prebuild": "node scripts/fetch-market-data.mjs --if-missing",
     "build": "next build",
     "start": "npx -y serve out",
     "lint": "eslint .",

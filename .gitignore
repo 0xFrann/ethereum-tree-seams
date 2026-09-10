@@ -7,7 +7,7 @@
 *.tsbuildinfo
 next-env.d.ts
 
-# data fetched at build time (see build/fetch-market-data.mjs)
+# data fetched at build time (see scripts/fetch-market-data.mjs)
 /public/market-data.json
 
 # environment

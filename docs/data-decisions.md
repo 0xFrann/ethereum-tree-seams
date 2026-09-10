@@ -43,7 +43,7 @@ Placement is capped rather than fudged. Ring progress for the current year is cl
 
 ## Disclosure
 
-The page shows the series, the provider, the cutoff, the number of observed rows, the gaps, and the timezone convention, all read from the payload rather than hard-coded. `SOURCE` names both Bitstamp and CryptoDataDownload, because the file is distributed by the latter. The `updatedAt` timestamp is the moment the payload was built, not a live feed. Every visible milestone retains its primary source URL and confidence in the shipped data, and the note for a selected knot links to that source.
+The "Data & source" sheet on the page shows the market, the provider, the cutoff, the number of observed days, the gap count and the timezone caveat, all read from the payload rather than hard-coded. It names both Bitstamp and CryptoDataDownload, because the file is distributed by the latter. The `updatedAt` timestamp is the moment the payload was built, not a live feed. Every visible milestone retains its primary source URL and confidence in the shipped data, and the note for a selected knot links to that source.
 
 CryptoDataDownload's free data is non-commercial and provided as-is. This is a non-commercial project; a different use would need different rights.
 

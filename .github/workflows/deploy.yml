@@ -33,6 +33,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run data
+      # The CV is read out of its own private repository; CV_TOKEN is a
+      # fine-grained token that can read that repository's contents and no more.
+      - run: pnpm run cv
+        env:
+          CV_TOKEN: ${{ secrets.CV_TOKEN }}
       # A project site lives under /<repository>; set BASE_PATH to an empty
       # string here for a custom domain or a user site.
       - run: |

@@ -49,6 +49,12 @@ The first run fetches the market data once. Refresh it at any time with:
 pnpm run data
 ```
 
+The byline links to a CV that is fetched from its own private repository at build time, so a local build has nothing behind that link unless you fetch it with a token that can read that repository's contents:
+
+```bash
+CV_TOKEN=... pnpm run cv
+```
+
 Other scripts:
 
 ```bash
@@ -60,7 +66,7 @@ pnpm run test:all    # lint, typecheck, build, and every test
 
 ## Deploying
 
-The `Deploy` workflow publishes `out/` to GitHub Pages on every push to `main`, on a daily schedule, and on demand. Enable Pages with the "GitHub Actions" source in the repository settings and it works as is. For a custom domain or a user site, set `BASE_PATH` to an empty string in the workflow. The same export deploys unchanged to Vercel or any static host.
+The `Deploy` workflow publishes `out/` to GitHub Pages on every push to `main`, on a daily schedule, and on demand. Enable Pages with the "GitHub Actions" source in the repository settings and it works as is. For a custom domain or a user site, set `BASE_PATH` to an empty string in the workflow. The build also needs a `CV_TOKEN` repository secret: a fine-grained personal access token with read-only access to the contents of the CV repository, and nothing else. The same export deploys unchanged to Vercel or any static host.
 
 ## Project structure
 
@@ -82,6 +88,7 @@ lib/
 scripts/
   fetch-market-data.mjs          Build-time data fetch, run before every build
   sign-export.mjs                Writes the note above <html> in the export, after every build
+  fetch-cv.mjs                   Build-time fetch of the CV from its private repository
 docs/
   data-pipeline.md               Fetch, validate, aggregate, publish
   data-decisions.md              What the rings are allowed to say
@@ -103,4 +110,4 @@ See [the data decisions](docs/data-decisions.md) and [the data pipeline](docs/da
 
 ## Author and license
 
-Made by [Frann Dalmasso](https://www.linkedin.com/in/franndalmasso). Code is released under the [MIT License](LICENSE); the market data stays subject to the provider's terms.
+Made by [Frann Dalmasso](https://www.linkedin.com/in/franndalmasso) ([CV](https://0xfrann.github.io/ethereum-tree-seams/cv.pdf)). Code is released under the [MIT License](LICENSE); the market data stays subject to the provider's terms.

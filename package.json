@@ -9,6 +9,7 @@
   "scripts": {
     "preinstall": "npx -y only-allow pnpm",
     "data": "node scripts/fetch-market-data.mjs",
+    "cv": "node scripts/fetch-cv.mjs",
     "predev": "node scripts/fetch-market-data.mjs --if-missing",
     "dev": "next dev",
     "prebuild": "node scripts/fetch-market-data.mjs --if-missing",

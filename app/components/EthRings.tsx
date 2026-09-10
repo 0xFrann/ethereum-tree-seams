@@ -101,6 +101,8 @@ let marketDataRequest: Promise<MarketData> | null = null;
 // (scripts/fetch-market-data.mjs) and preloaded from the layout, so the request
 // is already in flight by the time this module runs.
 const MARKET_DATA_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/market-data.json`;
+// The CV is fetched into public/ at build time too (scripts/fetch-cv.mjs).
+const CV_URL = `${process.env.NEXT_PUBLIC_BASE_PATH ?? ""}/cv.pdf`;
 
 /**
  * Where a readout line falls in the chain. The step is the score's, not the
@@ -146,9 +148,9 @@ function StageTitle({ data, annotate = true }: { data?: MarketData; annotate?: b
   // above the provenance: a sheet is signed after it is named and before it is
   // dated. It rattles rather than presents — whose sheet it is belongs with the
   // detail, not with the two lines the project introduces itself in — and the
-  // slash between the two links is struck in its turn like everything else on
-  // the line, or it stands there alone waiting for the words either side of it.
-  const byline = ["By", "Frann Dalmasso", "/", "Code"];
+  // slashes between the links are struck in their turn like everything else on
+  // the line, or they stand there alone waiting for the words either side.
+  const byline = ["By", "Frann Dalmasso", "/", "Code", "/", "CV"];
   const links: ChainLink[] = [
     title("Specimen"),
     title("ETH_TREE_01", TITLE_HOLD_MS * 1.4),
@@ -168,6 +170,8 @@ function StageTitle({ data, annotate = true }: { data?: MarketData; annotate?: b
         <a href="https://www.linkedin.com/in/franndalmasso" target="_blank" rel="noreferrer"><TypeOn text={byline[1]} start={annotate} delay={at[bylineAt + 1]} speed={DETAIL_SPEED_MS} /></a>
         <span aria-hidden="true"><TypeOn text={byline[2]} start={annotate} delay={at[bylineAt + 2]} speed={DETAIL_SPEED_MS} /></span>
         <a href="https://github.com/0xFrann/ethereum-tree-seams" target="_blank" rel="noreferrer"><TypeOn text={byline[3]} start={annotate} delay={at[bylineAt + 3]} speed={DETAIL_SPEED_MS} /></a>
+        <span aria-hidden="true"><TypeOn text={byline[4]} start={annotate} delay={at[bylineAt + 4]} speed={DETAIL_SPEED_MS} /></span>
+        <a href={CV_URL} target="_blank" rel="noreferrer"><TypeOn text={byline[5]} start={annotate} delay={at[bylineAt + 5]} speed={DETAIL_SPEED_MS} /></a>
       </p>
       <dl className="stage-provenance" aria-label="Specimen provenance">
         {provenance.map(([label, value], index) => (

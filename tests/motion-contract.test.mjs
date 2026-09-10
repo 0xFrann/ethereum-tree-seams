@@ -284,9 +284,9 @@ test("strikes the header as a chain, labels included", () => {
   assert.match(explorer, /const at = chainDelays\(links\)/);
   // The byline is written in the same chain, under the specimen number and
   // before the provenance: a sheet is signed after it is named and before it
-  // is dated. Its slash is struck in its turn too, or it stands alone on the
-  // line waiting for the words either side of it.
-  assert.match(explorer, /const byline = \["By", "Frann Dalmasso", "\/", "Code"\]/);
+  // is dated. Its slashes are struck in their turn too, or they stand alone on
+  // the line waiting for the words either side of them.
+  assert.match(explorer, /const byline = \["By", "Frann Dalmasso", "\/", "Code", "\/", "CV"\]/);
   assert.match(explorer, /\.\.\.byline\.map\(\(text\) => detail\(text\)\),\n\s*\.\.\.provenance\.flatMap/);
   assert.match(explorer, /const provenanceAt = bylineAt \+ byline\.length/);
   // The identity lines present; the provenance rows are a detail and rattle by.

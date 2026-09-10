@@ -101,6 +101,42 @@ test("puts the formerly scrolling content behind labelled accessible dialogs", (
 test("keeps a compact responsive fallback for narrow or short viewports", () => {
   assert.match(globalStyles, /@media \(max-width: 719px\), \(max-height: 620px\)/);
   assert.match(globalStyles, /\.graph-stage \{ width: min\(82vw, 58dvh\)/);
-  assert.match(globalStyles, /@media \(max-width: 390px\), \(max-height: 500px\)/);
+  // Only a short sheet still gives writing up to keep its corners; a narrow
+  // one sets its writing in rows and has the room.
+  assert.match(globalStyles, /@media \(max-height: 500px\) \{ body \{ overflow: auto; \} \.price-observations/);
+  assert.doesNotMatch(globalStyles, /@media \(max-width: 390px\)/);
   assert.match(globalStyles, /env\(safe-area-inset-top\)/);
+});
+
+test("sets the narrow sheet as five rows, with the plate the width of the sheet", () => {
+  const stacked = globalStyles.match(/@media \(max-width: 719px\), \(orientation: portrait\) and \(max-width: 1023px\) \{([\s\S]*?)\n\}/);
+  assert.ok(stacked, "a narrow or upright sheet is set in rows");
+  const rules = stacked[1];
+  // The sheet is as tall as what is written on it, and scrolls.
+  assert.match(rules, /body \{ overflow: auto; \}/);
+  assert.match(rules, /\.explorer-stage \{[^}]*flex-direction: column;[^}]*height: auto;[^}]*min-height: 100dvh;/);
+  // Nothing is pinned to a corner: the five blocks follow in reading order.
+  assert.match(rules, /\.stage-title, \.stage-price, \.selected-mark, \.stage-more \{ position: relative; inset: auto; \}/);
+  const order = ["<StageTitle", 'className="stage-price"', 'className="graph-stage"', 'className="selected-mark"', 'className="stage-more"'].map((mark) => explorer.indexOf(mark));
+  assert.deepEqual([...order].sort((a, b) => a - b), order, "title, reading, plate, note, links");
+  // The sheet's dates and the two figures are details the narrow sheet does
+  // without; the reading follows the title at the sheet's width.
+  assert.match(rules, /\.stage-provenance \{ display: none; \}/);
+  assert.match(rules, /\.stage-price \{ width: auto; text-align: left; \}/);
+  assert.match(rules, /\.price-observations \{ display: none; \}/);
+  // The writing is set larger than the compact corners set it, not smaller,
+  // and the two gaps go back up to the desktop's stops with it, on both the
+  // trimmed and the untrimmed path, so the gap-to-type ratio is the desktop's.
+  assert.match(rules, /:root \{ --gap-pair: var\(--space-1\); --gap-item: var\(--space-4\); \}/);
+  const trimmed = globalStyles.match(/@supports \(text-box: trim-both cap alphabetic\) \{([\s\S]*?)\n\}/)[1];
+  assert.match(trimmed, /@media \(max-width: 719px\), \(orientation: portrait\) and \(max-width: 1023px\) \{ :root \{ --gap-pair: var\(--space-3\); --gap-item: var\(--space-6\); \} \}/);
+  assert.match(rules, /\.stage-title h1 \{ font-size: clamp\(2\.2rem, 11vw, 3\.4rem\); \}/);
+  assert.match(rules, /\.period-date \{ font-size: clamp\(2rem, 9vw, 2\.6rem\); \}/);
+  assert.match(rules, /\.selected-mark p \{ font-size: 15px;/);
+  // The plate runs out to the corner marks and takes whatever height the
+  // square comes to.
+  assert.match(rules, /\.graph-stage \{[^}]*width: auto; margin: 0 calc\(max\(var\(--frame-inset\), env\(safe-area-inset-right\)\) - var\(--edge-right\)\)[^}]*transform: none;/);
+  // The note keeps its reserved box; the links set in a line.
+  assert.match(rules, /\.selected-mark \{ width: auto;[^}]*align-content: start; \}/);
+  assert.match(rules, /\.stage-more \{ display: flex; flex-wrap: wrap;/);
 });

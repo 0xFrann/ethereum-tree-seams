@@ -156,40 +156,28 @@ A 12-column plate with a quiet top band and an 8/4 specimen-to-instrument split.
 - Controls and selected details can sit beside the specimen, but the key stays aligned with the specimen rather than squeezed into the panel.
 - At short desktop heights, vertical gaps shrink before the specimen diameter does; the panel never overlaps or compresses the rings into illegibility.
 
-### Tablet: 720–1179px
+### Upright and narrow: portrait up to 1023px, or any width under 720px
 
-An 8-column layout.
-
-- Identity occupies columns 1–5 and live metadata 6–8 on the top band.
-- The specimen is centred across columns 1–8 at `min(86vw, 680px)`.
-- The key sits immediately below the specimen, wrapping as pairs if necessary.
-- Year and month controls and the selected details follow in a two-column row: controls left, readout right, collapsing to one column below roughly 820px if either side falls under 300px.
-- At least 48px of paper separates title and metadata from the specimen.
-- Registration marks may sit at the specimen's four cardinal bounds only when they align to true month axes; they are omitted before the visualization shrinks.
-
-### Mobile: below 720px
-
-One column in vertical reading order:
+A sheet narrower than it is tall has no corners to write in, so it is set as one column in reading order. Five rows, no columns:
 
 ```text
-header
-identity + one-line state
-specimen
-interaction instruction
-encoding key
-year control
-month control
-selected readout / milestone note
-source + freshness + methodology
+label       — Specimen, ETH_TREE_01, the byline
+reading     — month and year, and the price range
+plate       — out to the corner marks, and the height the square comes to
+note        — the selected segment's date, name and summary
+links       — How to read, All marks, Data & source, Method, in a line
 ```
 
-- Gutter: 20px through 359px viewport width; 24px above that.
-- Specimen width: `min(92vw, 440px)` with no horizontal scroll.
-- `Ethereum Annual Rings` stays on one or two intentional lines, never a three-line narrow-rail treatment.
-- Peripheral labels are reduced before ring contrast. Only cardinal month labels remain at the smallest width; the controls keep all months.
-- Year and month choices are 44px minimum targets. Six month columns work at 360px and wider; four columns below 360px if label and target width would otherwise fail.
-- Live metadata initially shows `STATE`, `CURRENT_RING`, and `DATA_THROUGH`; full series, source, and cutoff details follow directly below the readout. This is reordering, not deletion.
-- The panel is never pinned over the specimen. Sticky behaviour is limited to the small header, and only if it consumes no more than 56px.
+- The plate is the biggest thing on the sheet: it runs past the writing margin to the corner marks, and its height follows from its square. Nothing holds it to the height of the screen.
+- The sheet is as tall as what is written on it and scrolls when that is taller than the screen. The corner marks sit at the corners of the sheet, not of the screen.
+- The blocks stand two items apart, as the entries of a list do; the gaps inside a block are the sheet's two gaps at their desktop stops, not the compact sheet's, because the type is at the desktop's size and the ratio of gap to type is what the eye reads.
+- The sheet's dates — origin, first market data, updated — and the two figures under the price range are details the narrow sheet does without.
+- The writing is set larger than the compact corners set it, never smaller: a narrow sheet is read at arm's length, and it is a long sheet, not a cramped one. The title and the month grow with the width so each stays one line on the narrowest phone.
+- The note's box is still reserved at the worst case, so the links never move when the reading changes.
+
+### Short: under 500px tall
+
+A phone on its side keeps the corners and gives writing up to do so: the two readings, the note's label and two of the four links go, and the plate is held to the height left between the corners.
 
 ## Density and annotation
 

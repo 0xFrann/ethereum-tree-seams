@@ -374,7 +374,74 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
    one stop with them; the gaps inside a block are already at the smallest. */
 @media (max-width: 719px), (max-height: 620px) { :root { --frame-inset: var(--space-3); --sheet-margin: var(--space-7); --gap-item: var(--space-3); } .explorer-stage { min-height: 30rem; }
 .stage-title { max-width: 20rem; } .stage-kicker { font-size: 12px; } .stage-title h1 { font-size: clamp(1.5rem, 5.8vw, 2.1rem); } .stage-provenance dt { font-size: 11px; } .stage-provenance dd { font-size: 14px; } .stage-price { width: 10rem; } .stage-price span, .price-observations dt { font-size: 11px; } .period-date { font-size: 1.3rem; } .price-range { font-size: 15px; } .price-observations dd { font-size: 14px; } .graph-stage { width: min(82vw, 58dvh); transform: translate(-50%, -42%); } .selected-mark { width: min(13rem, 48vw); min-height: 140px; padding-top: var(--space-2); } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { font-size: 12px; line-height: 1.45; } .selected-mark h2 { margin-right: calc(var(--space-7) + var(--space-2)); font-size: 1.3rem; } .selected-mark .edge-label { font-size: 11px; } .event-source { width: var(--space-7); height: var(--space-7); font-size: 1rem; } .stage-more { gap: var(--space-1); } .stage-more button, .stage-credit { font-size: 11px; } }
-@media (max-width: 390px), (max-height: 500px) { .price-observations, .selected-mark .edge-label { display: none; } .selected-mark { width: 11rem; min-height: 126px; padding-top: 0; border-top: 0; } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
+/* A short sheet — a phone on its side — still keeps the corners, and has to
+   give up writing to keep them: the two readings, the note's label and two of
+   the four links go. A narrow sheet used to give them up too; it sets its
+   writing in rows now (below) and has the room. The sheet keeps a height of
+   its own under about 480px, so the screen scrolls to its foot rather than
+   cutting the note and the links off. */
+@media (max-height: 500px) { body { overflow: auto; } .price-observations, .selected-mark .edge-label { display: none; } .selected-mark { width: 11rem; min-height: 126px; padding-top: 0; border-top: 0; } .selected-mark h2 + p { height: 4.35em; -webkit-line-clamp: 3; } .selected-mark p { margin-top: 0; } .stage-more button:nth-child(1), .stage-more button:nth-child(3) { display: none; } .graph-stage { width: min(76vw, 53dvh); transform: translate(-50%, -36%); } }
+/* ---- The narrow sheet: five rows -----------------------------------------
+   A sheet narrower than it is tall has no corners to write in: the title and
+   the readout met in the middle of the top margin, and the plate, held to the
+   height left between them and the note, came out a coin. So the narrow sheet
+   is set as one column in reading order — the label, the reading, the plate,
+   the note, the links — and the plate takes the whole width of the sheet and
+   whatever height that comes to. The sheet is as tall as what is written on it
+   and scrolls if that is taller than the screen; the corner marks go to the
+   corners of the sheet, not of the screen. The blocks stand two items apart,
+   as the entries of a list do. Nothing is written smaller to make it fit: a
+   narrow sheet is a long sheet, not a cramped one. Phones and tablets held
+   upright take it, and any window narrower than 720px. */
+@media (max-width: 719px), (orientation: portrait) and (max-width: 1023px) {
+  /* The compact sheet above steps the two gaps down a stop because its type
+     steps down with them. This sheet's type is set at the desktop's size and
+     above, so the gaps go back to the desktop's stops: the distance between
+     two lines is judged against the size of the type on them, and the ratio
+     the corners keep is kept here. (The trimmed-box path sets its own pair of
+     stops for this sheet in the block below.) */
+  :root { --gap-pair: var(--space-1); --gap-item: var(--space-4); }
+  body { overflow: auto; }
+  .explorer-stage { display: flex; flex-direction: column; height: auto; min-height: 100dvh; padding: var(--edge-top) var(--edge-right) var(--edge-bottom) var(--edge-left); gap: calc(2 * var(--gap-item)); overflow: visible; }
+  .stage-title, .stage-price, .selected-mark, .stage-more { position: relative; inset: auto; }
+  .stage-title { max-width: none; }
+  /* The sheet's dates are a detail the narrow sheet does without. */
+  .stage-provenance { display: none; }
+  /* The reading is the month and its price range; the two figures taken from
+     it are a detail the narrow sheet does without. */
+  .stage-price { width: auto; text-align: left; }
+  .price-observations { display: none; }
+  /* The narrow sheet is read at arm's length on a small screen, so its writing
+     is set larger than the corners set theirs, never smaller: the compact
+     sizes above are for a sheet that has to fit its corners, and this one
+     does not. The two lines that name the sheet and the reading grow with the
+     width, so they stay one line each on the narrowest phone. */
+  .stage-kicker { font-size: 14px; }
+  .stage-title h1 { font-size: clamp(2.2rem, 11vw, 3.4rem); }
+  .stage-credit { font-size: 14px; }
+  .period-date { font-size: clamp(2rem, 9vw, 2.6rem); }
+  .price-range { font-size: clamp(1.25rem, 5.5vw, 1.5rem); }
+  /* The plate is the biggest thing on the sheet. It runs out past the writing
+     margin to the corner marks, so the paper the drawing keeps around itself
+     is the only margin it has; the height is whatever the square comes to. */
+  .graph-stage { position: relative; top: auto; left: auto; width: auto; margin: 0 calc(max(var(--frame-inset), env(safe-area-inset-right)) - var(--edge-right)) 0 calc(max(var(--frame-inset), env(safe-area-inset-left)) - var(--edge-left)); transform: none; }
+  /* The note reads on from the plate rather than up from the links: its box
+     is still reserved at the worst case — three lines of the summary at this
+     size — and the writing sets at the top of it. */
+  .selected-mark { width: auto; min-height: 160px; padding-top: 0; align-content: start; }
+  .selected-mark .edge-label { font-size: 13px; }
+  .selected-mark h2 { margin-right: calc(var(--space-7) + var(--space-4)); font-size: 1.5rem; }
+  .selected-mark p { font-size: 15px; line-height: 1.5; }
+  .selected-mark h2 + p { height: 4.5em; -webkit-line-clamp: 3; }
+  .event-source { width: calc(var(--space-7) + var(--space-2)); height: calc(var(--space-7) + var(--space-2)); font-size: 1.5rem; }
+  .stage-more button { font-size: 14px; }
+  /* The links set in a line, wrapping if the sheet is too narrow for four.
+     The buttons keep their side padding for their focus rings and give it
+     back in their margins, so the ink stands an item apart along the line and
+     every line of it sets flush with the sheet's margin. */
+  .stage-more { display: flex; flex-wrap: wrap; gap: var(--space-1) var(--gap-item); margin: 0; text-align: left; }
+  .stage-more button { margin: 0 calc(-1 * var(--space-2)); text-align: left; }
+}
 /* ---- Ink, not boxes -----------------------------------------------------
    The two gaps are meant between the type's ink: from one line's baseline to
    the cap height of the next. A line box carries leading above the caps and
@@ -389,6 +456,8 @@ button:focus-visible, a:focus-visible { outline: 1px solid var(--accent); outlin
 @supports (text-box: trim-both cap alphabetic) {
   :root { --gap-pair: var(--space-3); --gap-item: var(--space-6); }
   @media (max-width: 719px), (max-height: 620px) { :root { --gap-pair: var(--space-2); --gap-item: var(--space-4); } }
+  /* The stacked sheet sets desktop-sized type, so it takes the desktop gaps. */
+  @media (max-width: 719px), (orientation: portrait) and (max-width: 1023px) { :root { --gap-pair: var(--space-3); --gap-item: var(--space-6); } }
   .stage-title :is(h1, p), .stage-provenance :is(dt, dd), .period-date, .price-range, .price-observations :is(dt, dd), .selected-mark :is(p, h2), .stage-more button, .stage-credit, .rings-hint, .explorer-state p, .stage-dialog-head h2, .stage-dialog-body p, .dialog-event-list :is(span, strong, small), .dialog-data :is(dt, dd), .dialog-method b { text-box: trim-both cap alphabetic; }
   /* Courier Prime's cap height: what a trimmed line of it stands. */
   .stage-provenance dd { min-height: .58em; }

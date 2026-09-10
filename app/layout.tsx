@@ -25,13 +25,13 @@ export const metadata: Metadata = {
     title: "Ethereum Annual Rings",
     description,
     type: "website",
-    images: [{ url: `${basePath}/og.png`, width: 1731, height: 909, alt: "Ethereum Annual Rings" }],
+    images: [{ url: `${basePath}/og.jpg`, width: 1200, height: 630, alt: "The specimen sheet: ten annual rings with their milestone knots, the month index, and the readout for the latest month" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Ethereum Annual Rings",
     description,
-    images: [`${basePath}/og.png`],
+    images: [`${basePath}/og.jpg`],
   },
 };
 

@@ -78,8 +78,10 @@ app/
 lib/
   market-data.mjs                CSV parsing, validation, and aggregation
   event-data.mjs                 Sourced milestone records
+  source-note.mjs                The note left in the source for whoever reads it
 scripts/
   fetch-market-data.mjs          Build-time data fetch, run before every build
+  sign-export.mjs                Writes the note above <html> in the export, after every build
 docs/
   data-pipeline.md               Fetch, validate, aggregate, publish
   data-decisions.md              What the rings are allowed to say

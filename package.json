@@ -13,6 +13,7 @@
     "dev": "next dev",
     "prebuild": "node scripts/fetch-market-data.mjs --if-missing",
     "build": "next build",
+    "postbuild": "node scripts/sign-export.mjs",
     "start": "npx -y serve out",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

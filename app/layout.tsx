@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Courier_Prime } from "next/font/google";
 import "./globals.css";
+import { SOURCE_NOTE } from "../lib/source-note.mjs";
 
 // Self-hosted at build time, so the sheet's type never waits on a third party.
 const courierPrime = Courier_Prime({
@@ -49,6 +50,9 @@ export default function RootLayout({
     <html lang="en" className={courierPrime.variable}>
       <head>
         <link rel="preload" href={`${basePath}/market-data.json`} as="fetch" crossOrigin="anonymous" />
+        {/* The note for whoever opens the console; the same text is written
+            above <html> in the export by scripts/sign-export.mjs. */}
+        <script dangerouslySetInnerHTML={{ __html: `console.log(${JSON.stringify(SOURCE_NOTE)});` }} />
       </head>
       <body>{children}</body>
     </html>

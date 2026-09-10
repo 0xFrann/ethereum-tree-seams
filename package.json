@@ -21,7 +21,7 @@
     "test:all": "pnpm run lint && pnpm run typecheck && pnpm test"
   },
   "dependencies": {
-    "next": "^16.3.2",
+    "next": "^16.3.4",
     "react": "19.2.6",
     "react-dom": "19.2.6"
   },
@@ -30,7 +30,7 @@
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "eslint": "9.39.4",
-    "eslint-config-next": "^16.3.2",
+    "eslint-config-next": "^16.3.4",
     "typescript": "5.9.3"
   },
   "type": "module"

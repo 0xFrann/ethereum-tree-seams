@@ -16,7 +16,7 @@ import { access, mkdir, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 export const CV_REPOSITORY = "0xFrann/cv";
-export const CV_PATH = "silver-dev-cv/Franco-Dalmasso-Frontend-Engineer.pdf";
+export const CV_PATH = "silver-dev-cv/Franco-Dalmasso-Product-Design-Engineer.pdf";
 export const DEFAULT_OUTPUT = "public/cv.pdf";
 const UPSTREAM_TIMEOUT_MS = 20_000;
 

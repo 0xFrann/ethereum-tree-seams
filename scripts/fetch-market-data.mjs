@@ -61,7 +61,10 @@ async function main(argv) {
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href) {
   main(process.argv.slice(2)).catch((error) => {
-    console.error("Market data fetch failed:", error instanceof Error ? error.message : error);
+    // fetch() reports every network failure as "fetch failed"; the reason (an
+    // expired certificate, a DNS miss) is on its cause.
+    const cause = error?.cause ? `: ${error.cause.message ?? error.cause}${error.cause.code ? ` (${error.cause.code})` : ""}` : "";
+    console.error("Market data fetch failed:", (error instanceof Error ? error.message : error) + cause);
     process.exitCode = 1;
   });
 }

@@ -58,7 +58,10 @@ async function main() {
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], "file://").href) {
   main().catch((error) => {
-    console.error(error instanceof Error ? error.message : error);
+    // fetch() reports every network failure as "fetch failed"; the reason (an
+    // expired certificate, a DNS miss) is on its cause.
+    const cause = error?.cause ? `: ${error.cause.message ?? error.cause}${error.cause.code ? ` (${error.cause.code})` : ""}` : "";
+    console.error((error instanceof Error ? error.message : error) + cause);
     process.exit(1);
   });
 }

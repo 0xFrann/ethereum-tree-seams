@@ -28,3 +28,7 @@ Any failure throws, the script exits non-zero, and nothing is written.
 ## Locally
 
 `pnpm dev` and `pnpm build` fetch the file only if `public/market-data.json` is absent, so work stays offline after the first run. `pnpm run data` refreshes it on demand.
+
+## In CI
+
+`.github/workflows/ci.yml` copies `tests/fixtures/market-data.json`, a snapshot of a real fetch, into `public/` before the build, so the tests never reach the upstream host and its outages fail only the deploy. The snapshot needs refreshing only when the document's shape changes: run `pnpm run data` and copy the result over it.
